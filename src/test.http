@@ -1,0 +1,28 @@
+@baseUrl = http://localhost:3000/api
+
+### REGISTER
+POST {{baseUrl}}/user/register
+Content-Type: application/json
+
+{
+  "email": "test@test.com",
+  "password": "12345678"
+}
+
+### VALIDATION
+PUT {{baseUrl}}/user/validation
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5Yzk1NmU3OWZiNjE1NDRkMzZmZTg4NSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc3NDgwMjY2MywiZXhwIjoxNzc0ODAzNTYzfQ.3bQDTzUDbhUvpuMZCHBhAFTY3rOXQzE36SXvfZWQTx4
+
+{
+  "code": "175928"
+}
+
+### LOGIN
+POST {{baseUrl}}/user/login
+Content-Type: application/json
+
+{
+  "email": "test@test.com",
+  "password": "12345678"
+}
