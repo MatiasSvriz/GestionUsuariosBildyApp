@@ -13,7 +13,8 @@ export const errorHandler = (err, req, res, next) => {
     ok: false,
     error: {
       code,
-      message
+      message,
+      ...(err.details && { details: err.details })
     }
   });
 };

@@ -44,4 +44,11 @@ export class AppError extends Error {
     static internal(message = 'Error interno del servidor', code = 'INTERNAL_ERROR') {
       return new AppError(message, 500, code);
     }
+
+    static validation(message = 'Error de validación', details = []) { // Para compatibilidad con middleware de validación
+      const error = new AppError(message, 400, 'VALIDATION_ERROR');
+      error.details = details;
+      return error;
+    }
+
   }
