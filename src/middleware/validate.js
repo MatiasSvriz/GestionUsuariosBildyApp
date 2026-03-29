@@ -1,26 +1,24 @@
-import mongoose from 'mongoose';
-/**
- * Middleware de validación con Zod
- */
+import { ZodError } from 'zod';
+import { AppError } from '../utils/AppError.js';
+
 export const validate = (schema) => (req, res, next) => {
   try {
-    schema.parse({
-      body: req.body,
-      query: req.query,
-      params: req.params
+    const parsedData = schema.parse({
+      body: req.body
     });
+
+    req.body = parsedData.body;
     next();
   } catch (error) {
-    const errors = error.errors.map(e => ({
-      field: e.path.join('.'),
-      message: e.message
-    }));
-    
-    res.status(400).json({
-      error: true,
-      message: 'Error de validación',
-      code: 'VALIDATION_ERROR',
-      details: errors
-    });
+    if (error instanceof ZodError) {
+      const details = error.issues.map((issue) => ({
+        field: issue.path.join('.'),
+        message: issue.message
+      }));
+
+      return next(AppError.validation('Error de validación', details));
+    }
+
+    next(error);
   }
 };

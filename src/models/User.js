@@ -36,7 +36,6 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
       lowercase: true
     },
@@ -63,14 +62,12 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ['admin', 'guest'],
-      default: 'admin',
-      index: true
+      default: 'admin'
     },
     status: {
       type: String,
       enum: ['pending', 'verified'],
-      default: 'pending',
-      index: true
+      default: 'pending'
     },
     verificationCode: {
       type: String,
@@ -81,11 +78,15 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 3
     },
+    refreshToken: {
+      type: String,
+      default: null,
+      select: false
+    },
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Company',
-      default: null,
-      index: true
+      default: null
     },
     address: {
       type: addressSchema,

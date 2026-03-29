@@ -25,7 +25,6 @@ app.use(rateLimit({
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use(mongoSanitize());
 
 app.use('/uploads', express.static('uploads'));
 

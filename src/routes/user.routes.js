@@ -1,12 +1,12 @@
 import { Router } from 'express';
+import { registerUser } from '../controllers/user.controller.js';
+import { validate } from '../middleware/validate.js';
+import { registerUserValidator } from '../validators/user.validator.js';
 
 const router = Router();
 
-router.get('/', (req, res) => {
-  res.status(200).json({
-    ok: true,
-    message: 'Ruta base de user funcionando'
-  });
-});
+router.post('/register', (req, res, next) => {
+  next();
+}, validate(registerUserValidator), registerUser);
 
 export default router;
