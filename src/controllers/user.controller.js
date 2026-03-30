@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import User from '../models/User.js';
 import { AppError } from '../utils/AppError.js';
 import { config } from '../config/index.js';
+import Company from '../models/Company.js';
 
 const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -174,6 +175,124 @@ export const validateEmailCode = async (req, res, next) => {
             status: req.user.status,
             role: req.user.role
           }
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  export const updateCompanyData = async (req, res, next) => {
+    try {
+      const { name, cif, address, isFreelance } = req.body;
+      const user = req.user;
+  
+      let companyName = name;
+      let companyCif = cif;
+      let companyAddress = address;
+  
+      if (isFreelance) {
+        companyName = user.fullName;
+        companyCif = user.nif;
+        companyAddress = user.address;
+      }
+  
+      if (!companyCif) {
+        return next(AppError.badRequest('El CIF es obligatorio'));
+      }
+  
+      const existingCompany = await Company.findOne({ cif: companyCif });
+  
+      if (!existingCompany) {
+        const newCompany = await Company.create({
+          owner: user._id,
+          name: companyName,
+          cif: companyCif,
+          address: companyAddress,
+          isFreelance
+        });
+  
+        user.company = newCompany._id;
+        user.role = 'admin';
+        await user.save();
+  
+        return res.status(200).json({
+          ok: true,
+          data: {
+            company: newCompany,
+            user: {
+              email: user.email,
+              role: user.role,
+              company: user.company
+            }
+          }
+        });
+      }
+  
+      user.company = existingCompany._id;
+      user.role = 'guest';
+      await user.save();
+  
+      res.status(200).json({
+        ok: true,
+        data: {
+          company: existingCompany,
+          user: {
+            email: user.email,
+            role: user.role,
+            company: user.company
+          }
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  export const uploadCompanyLogo = async (req, res, next) => {
+    try {
+      const user = req.user;
+  
+      if (!user.company) {
+        return next(AppError.badRequest('El usuario no tiene una compañía asociada'));
+      }
+  
+      if (!req.file) {
+        return next(AppError.badRequest('Debes subir una imagen'));
+      }
+  
+      const company = await Company.findById(user.company);
+  
+      if (!company) {
+        return next(AppError.notFound('Compañía no encontrada'));
+      }
+  
+      company.logo = `/uploads/${req.file.filename}`;
+      await company.save();
+  
+      res.status(200).json({
+        ok: true,
+        data: {
+          logo: company.logo
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  export const getUser = async (req, res, next) => {
+    try {
+      const user = await User.findById(req.user._id).populate('company');
+  
+      if (!user) {
+        return next(AppError.notFound('Usuario no encontrado'));
+      }
+  
+      res.status(200).json({
+        ok: true,
+        data: {
+          user
         }
       });
     } catch (error) {

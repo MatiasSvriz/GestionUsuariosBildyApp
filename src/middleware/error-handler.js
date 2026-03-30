@@ -5,6 +5,16 @@ export const notFoundHandler = (req, res, next) => {
 };
 
 export const errorHandler = (err, req, res, next) => {
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({
+      ok: false,
+      error: {
+        code: 'FILE_TOO_LARGE',
+        message: 'El archivo supera el tamaño máximo de 5 MB'
+      }
+    });
+  }
+
   const statusCode = err.statusCode || 500;
   const code = err.code || 'INTERNAL_ERROR';
   const message = err.message || 'Error interno del servidor';
