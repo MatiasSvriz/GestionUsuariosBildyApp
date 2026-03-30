@@ -15,7 +15,9 @@ export const authMiddleware = async (req, res, next) => {
 
     const payload = jwt.verify(token, config.jwtSecret);
 
-    const user = await User.findById(payload.id).select('+verificationCode');
+    const user = await User.findById(payload.id).select(
+      '+verificationCode +refreshToken +refreshTokenExpiresAt'
+    );
 
     if (!user) {
       return next(AppError.unauthorized('Usuario no autorizado'));

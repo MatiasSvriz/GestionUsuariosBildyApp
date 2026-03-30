@@ -46,7 +46,6 @@ const companySchema = new mongoose.Schema(
     cif: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
       uppercase: true
     },

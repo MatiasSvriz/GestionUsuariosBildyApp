@@ -6,7 +6,11 @@ import {
   updatePersonalData,
   updateCompanyData,
   uploadCompanyLogo,
-  getUser
+  getUser,
+  refreshAccessToken,
+  logoutUser,
+  deleteUser,
+  changePassword
 } from '../controllers/user.controller.js';
 import { validate } from '../middleware/validate.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
@@ -16,7 +20,9 @@ import {
   validateEmailCodeValidator,
   loginUserValidator,
   updatePersonalDataValidator,
-  updateCompanyValidator
+  updateCompanyValidator,
+  refreshTokenValidator,
+  changePasswordValidator
 } from '../validators/user.validator.js';
 
 const router = Router();
@@ -28,5 +34,9 @@ router.put('/register', authMiddleware, validate(updatePersonalDataValidator), u
 router.patch('/company', authMiddleware, validate(updateCompanyValidator), updateCompanyData);
 router.patch('/logo', authMiddleware, uploadLogo.single('logo'), uploadCompanyLogo);
 router.get('/', authMiddleware, getUser);
+router.post('/refresh', validate(refreshTokenValidator), refreshAccessToken);
+router.post('/logout', authMiddleware, logoutUser);
+router.delete('/', authMiddleware, deleteUser);
+router.put('/password', authMiddleware, validate(changePasswordValidator), changePassword);
 
 export default router;

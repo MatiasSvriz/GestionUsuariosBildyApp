@@ -83,6 +83,11 @@ const userSchema = new mongoose.Schema(
       default: null,
       select: false
     },
+    refreshTokenExpiresAt: {
+      type: Date,
+      default: null,
+      select: false
+    },
     company: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Company',
@@ -95,6 +100,10 @@ const userSchema = new mongoose.Schema(
     deleted: {
       type: Boolean,
       default: false
+    },
+    deletedAt: {
+      type: Date,
+      default: null
     }
   },
   {
