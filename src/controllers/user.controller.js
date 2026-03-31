@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import { AppError } from '../utils/AppError.js';
 import { config } from '../config/index.js';
 import Company from '../models/Company.js';
+import { notificationService } from '../services/notification.service.js';
 
 const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -35,7 +36,8 @@ const getRefreshTokenExpirationDate = () => {
 
 export const registerUser = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
+    const { password } = req.body;
 
     const existingUser = await User.findOne({ email });
 
@@ -59,12 +61,20 @@ export const registerUser = async (req, res, next) => {
       refreshTokenExpiresAt
     });
 
+    const savedUser = await User.findById(user._id)
+      .select('+refreshToken +refreshTokenExpiresAt');
+
+    console.log('TOKEN GENERADO:', refreshToken);
+    console.log('TOKEN EN BD:', savedUser?.refreshToken);
+    console.log('EXPIRACION EN BD:', savedUser?.refreshTokenExpiresAt);
+
     const accessToken = generateAccessToken(user);
 
-    res.status(201).json({
+    return res.status(201).json({
       ok: true,
       data: {
         user: {
+          id: user._id,
           email: user.email,
           status: user.status,
           role: user.role
@@ -112,6 +122,11 @@ export const validateEmailCode = async (req, res, next) => {
       user.status = 'verified';
       user.verificationCode = null;
       await user.save();
+
+      notificationService.emit('user:verified', {
+        userId: user._id,
+        email: user.email
+      });
   
       res.status(200).json({
         ok: true,
@@ -126,7 +141,7 @@ export const validateEmailCode = async (req, res, next) => {
     try {
       const { email, password } = req.body;
   
-      const user = await User.findOne({ email }).select('+password +refreshToken');
+      const user = await User.findOne({ email }).select('+password +refreshToken +refreshTokenExpiresAt');
   
       if (!user) {
         return next(AppError.unauthorized('Credenciales incorrectas'));
@@ -314,12 +329,17 @@ export const validateEmailCode = async (req, res, next) => {
   export const refreshAccessToken = async (req, res, next) => {
     try {
       const { refreshToken } = req.body;
+      console.log('REFRESH RECIBIDO:', refreshToken);
   
       const user = await User.findOne({ refreshToken }).select('+refreshToken +refreshTokenExpiresAt');
+      console.log('USER ENCONTRADO:', user);
   
       if (!user) {
         return next(AppError.unauthorized('Refresh token inválido o expirado'));
       }
+  
+      console.log('EXPIRA EN:', user.refreshTokenExpiresAt);
+      console.log('AHORA:', new Date());
   
       if (!user.refreshTokenExpiresAt || user.refreshTokenExpiresAt < new Date()) {
         return next(AppError.unauthorized('Refresh token inválido o expirado'));
@@ -329,9 +349,7 @@ export const validateEmailCode = async (req, res, next) => {
   
       res.status(200).json({
         ok: true,
-        data: {
-          accessToken
-        }
+        data: { accessToken }
       });
     } catch (error) {
       next(error);
@@ -388,7 +406,8 @@ export const validateEmailCode = async (req, res, next) => {
     try {
       const { currentPassword, newPassword } = req.body;
   
-      const user = await User.findById(req.user._id).select('+password');
+      const user = await User.findById(req.user._id)
+        .select('+password +verificationCode');
   
       if (!user) {
         return next(AppError.notFound('Usuario no encontrado'));
@@ -408,6 +427,63 @@ export const validateEmailCode = async (req, res, next) => {
       res.status(200).json({
         ok: true,
         message: 'Contraseña actualizada correctamente'
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  export const inviteUser = async (req, res, next) => {
+    try {
+      const email = req.body.email?.trim().toLowerCase();
+      const { password, name, lastName, nif } = req.body;
+  
+      if (!inviter.company) {
+        return next(AppError.badRequest('El usuario administrador no tiene una compañía asociada'));
+      }
+  
+      const existingUser = await User.findOne({ email });
+  
+      if (existingUser) {
+        return next(AppError.conflict('Ya existe un usuario con ese email'));
+      }
+  
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const verificationCode = generateVerificationCode();
+  
+      const invitedUser = await User.create({
+        email,
+        password: hashedPassword,
+        name,
+        lastName,
+        nif,
+        role: 'guest',
+        status: 'pending',
+        verificationCode,
+        verificationAttempts: 3,
+        company: inviter.company
+      });
+  
+      notificationService.emit('user:invited', {
+        invitedUserId: invitedUser._id,
+        invitedEmail: invitedUser.email,
+        invitedBy: inviter.email,
+        companyId: inviter.company
+      });
+  
+      res.status(201).json({
+        ok: true,
+        data: {
+          user: {
+            email: invitedUser.email,
+            name: invitedUser.name,
+            lastName: invitedUser.lastName,
+            nif: invitedUser.nif,
+            role: invitedUser.role,
+            status: invitedUser.status,
+            company: invitedUser.company
+          }
+        }
       });
     } catch (error) {
       next(error);

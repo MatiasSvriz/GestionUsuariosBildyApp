@@ -10,7 +10,8 @@ import {
   refreshAccessToken,
   logoutUser,
   deleteUser,
-  changePassword
+  changePassword,
+  inviteUser
 } from '../controllers/user.controller.js';
 import { validate } from '../middleware/validate.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
@@ -22,8 +23,10 @@ import {
   updatePersonalDataValidator,
   updateCompanyValidator,
   refreshTokenValidator,
-  changePasswordValidator
+  changePasswordValidator,
+  inviteUserValidator
 } from '../validators/user.validator.js';
+import { requireRole } from '../middleware/role.middleware.js';
 
 const router = Router();
 
@@ -38,5 +41,6 @@ router.post('/refresh', validate(refreshTokenValidator), refreshAccessToken);
 router.post('/logout', authMiddleware, logoutUser);
 router.delete('/', authMiddleware, deleteUser);
 router.put('/password', authMiddleware, validate(changePasswordValidator), changePassword);
+router.post('/invite', authMiddleware, requireRole('admin'), validate(inviteUserValidator), inviteUser);
 
 export default router;

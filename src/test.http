@@ -1,28 +1,275 @@
-@baseUrl = http://localhost:3000/api
+### =========================================
+### BildyApp - REST Client tests
+### Archivo para VS Code REST Client
+### =========================================
 
-### REGISTER
-POST {{baseUrl}}/user/register
-Content-Type: application/json
+@baseUrl = http://localhost:3000/api/user
+@json = application/json
+
+### =========================================
+### 0) Health check
+### =========================================
+GET http://localhost:3000/health
+
+### =========================================
+### 1) Registro de usuario
+### Copia el accessToken y refreshToken de la respuesta
+### =========================================
+POST {{baseUrl}}/register
+Content-Type: {{json}}
 
 {
-  "email": "test@test.com",
+  "email": "matias.test@test.com",
   "password": "12345678"
 }
 
-### VALIDATION
-PUT {{baseUrl}}/user/validation
-Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5Yzk1NmU3OWZiNjE1NDRkMzZmZTg4NSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc3NDgwMjY2MywiZXhwIjoxNzc0ODAzNTYzfQ.3bQDTzUDbhUvpuMZCHBhAFTY3rOXQzE36SXvfZWQTx4
+### =========================================
+### VARIABLES MANUALES
+### Pega aquí los valores que te devuelva el register/login
+### =========================================
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5Y2JmN2M5NWYyZWM4MjA0N2ZhZTA0MiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc3NDk3NDkyMSwiZXhwIjoxNzc0OTc1ODIxfQ.X_g_lCv8Wq1RGYD4s1zNCEW_sKZ4ZHDX1bzG0D5EaqI
+@refreshToken = 787ce0f0349241a2b5264f837a14f68d2c2cce8bb57a3c1a252fd282c70faa79360f9917e2e6a1548c3f754bb230386fb0bcbeccf5ed9fe6f82a88dd89b7c703
+@verificationCode = 278535
+
+### =========================================
+### 2) Validación del email
+### El code lo sacas de MongoDB Atlas
+### =========================================
+PUT {{baseUrl}}/validation
+Content-Type: {{json}}
+Authorization: Bearer {{accessToken}}
 
 {
-  "code": "175928"
+  "code": "{{verificationCode}}"
 }
 
-### LOGIN
-POST {{baseUrl}}/user/login
-Content-Type: application/json
+### =========================================
+### 3) Login
+### Copia el nuevo accessToken y refreshToken
+### =========================================
+POST {{baseUrl}}/login
+Content-Type: {{json}}
 
 {
-  "email": "test@test.com",
+  "email": "matias.test@test.com",
   "password": "12345678"
+}
+
+### =========================================
+### 4) Onboarding - Datos personales
+### =========================================
+PUT {{baseUrl}}/register
+Content-Type: {{json}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Matias",
+  "lastName": "Svriz",
+  "nif": "12345678A"
+}
+
+### =========================================
+### 4B) Onboarding - Datos personales con dirección
+### Usa esta si tu endpoint ya guarda address también
+### =========================================
+PUT {{baseUrl}}/register
+Content-Type: {{json}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "name": "Matias",
+  "lastName": "Svriz",
+  "nif": "12345678A",
+  "address": {
+    "street": "San Agustín",
+    "number": "4",
+    "postal": "24001",
+    "city": "León",
+    "province": "León"
+  }
+}
+
+### =========================================
+### 5A) Onboarding - Company normal
+### isFreelance = false
+### =========================================
+PATCH {{baseUrl}}/company
+Content-Type: {{json}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "isFreelance": false,
+  "name": "Bildy Company",
+  "cif": "B12345678",
+  "address": {
+    "street": "Calle Mayor",
+    "number": "12",
+    "postal": "28001",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+### =========================================
+### 5B) Onboarding - Autónomo
+### Usa el NIF y los datos del usuario
+### =========================================
+PATCH {{baseUrl}}/company
+Content-Type: {{json}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "isFreelance": true
+}
+
+### =========================================
+### 6) Subir logo de la compañía
+### Cambia la ruta del fichero por una imagen real
+### No pongas Content-Type manualmente
+### =========================================
+PATCH {{baseUrl}}/logo
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="logo"; filename="logo.png"
+Content-Type: image/png
+
+< ./logo.png
+--WebAppBoundary--
+
+### =========================================
+### 7) Obtener usuario autenticado
+### Debe traer company con populate y fullName
+### =========================================
+GET {{baseUrl}}
+Authorization: Bearer {{accessToken}}
+
+### =========================================
+### 8) Refresh token
+### Devuelve un nuevo accessToken
+### =========================================
+POST {{baseUrl}}/refresh
+Content-Type: {{json}}
+
+{
+  "refreshToken": "c0eeff643ed72e83ffae1df12b12f1baba611bcc5563bb7c2d99b553b3fc443e02a9576ffaf0d5c502364bf4dabba4ae850f99b65f69d83029b5da6336a6fec0"
+}
+
+### =========================================
+### 9) Logout
+### Invalida el refresh token guardado
+### =========================================
+POST {{baseUrl}}/logout
+Authorization: Bearer {{accessToken}}
+
+### =========================================
+### 10) Cambiar contraseña
+### La nueva debe ser distinta a la actual
+### =========================================
+PUT {{baseUrl}}/password
+Content-Type: {{json}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "currentPassword": "12345678",
+  "newPassword": "87654321"
+}
+
+### =========================================
+### 11) Login con la nueva contraseña
+### =========================================
+POST {{baseUrl}}/login
+Content-Type: {{json}}
+
+{
+  "email": "matias.test@test.com",
+  "password": "87654321"
+}
+
+### =========================================
+### VARIABLES MANUALES NUEVAS
+### Pega aquí el nuevo accessToken / refreshToken tras el login
+### =========================================
+@accessToken2 = PEGA_AQUI_EL_NUEVO_ACCESS_TOKEN
+@refreshToken2 = PEGA_AQUI_EL_NUEVO_REFRESH_TOKEN
+
+### =========================================
+### 12) Invitar compañero (requiere admin)
+### El usuario invitado entra como guest y con la misma company
+### =========================================
+POST {{baseUrl}}/invite
+Content-Type: {{json}}
+Authorization: Bearer {{accessToken2}}
+
+{
+  "email": "companero.demo@test.com",
+  "password": "12345678",
+  "name": "Ana",
+  "lastName": "Lopez",
+  "nif": "11111111A"
+}
+
+### =========================================
+### 13) Login del invitado
+### =========================================
+POST {{baseUrl}}/login
+Content-Type: {{json}}
+
+{
+  "email": "companero.demo@test.com",
+  "password": "12345678"
+}
+
+### =========================================
+### 14) Soft delete del usuario autenticado
+### =========================================
+DELETE {{baseUrl}}?soft=true
+Authorization: Bearer {{accessToken2}}
+
+### =========================================
+### 15) Hard delete del usuario autenticado
+### OJO: esto borra el usuario físicamente
+### =========================================
+DELETE {{baseUrl}}
+Authorization: Bearer {{accessToken2}}
+
+### =========================================
+### TESTS DE ERROR ÚTILES
+### =========================================
+
+### Register duplicado -> debe dar 409
+POST {{baseUrl}}/register
+Content-Type: {{json}}
+
+{
+  "email": "matias.demo@test.com",
+  "password": "12345678"
+}
+
+### Validation con código incorrecto -> debe dar 4XX
+PUT {{baseUrl}}/validation
+Content-Type: {{json}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "code": "000000"
+}
+
+### Refresh con token inválido -> debe dar 401
+POST {{baseUrl}}/refresh
+Content-Type: {{json}}
+
+{
+  "refreshToken": "token-invalido"
+}
+
+### Cambio de contraseña con misma contraseña -> debe fallar por Zod refine
+PUT {{baseUrl}}/password
+Content-Type: {{json}}
+Authorization: Bearer {{accessToken}}
+
+{
+  "currentPassword": "87654321",
+  "newPassword": "87654321"
 }
