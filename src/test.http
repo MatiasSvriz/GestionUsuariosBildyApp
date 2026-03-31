@@ -19,7 +19,7 @@ POST {{baseUrl}}/register
 Content-Type: {{json}}
 
 {
-  "email": "matias.test@test.com",
+  "email": "matias.ejemplo@test.com",
   "password": "12345678"
 }
 
@@ -27,9 +27,9 @@ Content-Type: {{json}}
 ### VARIABLES MANUALES
 ### Pega aquí los valores que te devuelva el register/login
 ### =========================================
-@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5Y2JmN2M5NWYyZWM4MjA0N2ZhZTA0MiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc3NDk3NDkyMSwiZXhwIjoxNzc0OTc1ODIxfQ.X_g_lCv8Wq1RGYD4s1zNCEW_sKZ4ZHDX1bzG0D5EaqI
-@refreshToken = 787ce0f0349241a2b5264f837a14f68d2c2cce8bb57a3c1a252fd282c70faa79360f9917e2e6a1548c3f754bb230386fb0bcbeccf5ed9fe6f82a88dd89b7c703
-@verificationCode = 278535
+@accessToken = 
+@refreshToken = 
+@verificationCode = 
 
 ### =========================================
 ### 2) Validación del email
@@ -129,14 +129,14 @@ Authorization: Bearer {{accessToken}}
 ### =========================================
 PATCH {{baseUrl}}/logo
 Authorization: Bearer {{accessToken}}
-Content-Type: multipart/form-data; boundary=WebAppBoundary
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
---WebAppBoundary
-Content-Disposition: form-data; name="logo"; filename="logo.png"
-Content-Type: image/png
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="logo"; filename="lotuselise.jpeg"
+Content-Type: image/jpeg
 
-< ./logo.png
---WebAppBoundary--
+< ../uploads/logo.jpeg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
 ### =========================================
 ### 7) Obtener usuario autenticado
@@ -153,7 +153,7 @@ POST {{baseUrl}}/refresh
 Content-Type: {{json}}
 
 {
-  "refreshToken": "c0eeff643ed72e83ffae1df12b12f1baba611bcc5563bb7c2d99b553b3fc443e02a9576ffaf0d5c502364bf4dabba4ae850f99b65f69d83029b5da6336a6fec0"
+  "refreshToken": "{{accessToken}}"
 }
 
 ### =========================================
@@ -191,8 +191,8 @@ Content-Type: {{json}}
 ### VARIABLES MANUALES NUEVAS
 ### Pega aquí el nuevo accessToken / refreshToken tras el login
 ### =========================================
-@accessToken2 = PEGA_AQUI_EL_NUEVO_ACCESS_TOKEN
-@refreshToken2 = PEGA_AQUI_EL_NUEVO_REFRESH_TOKEN
+@accessToken2 = 
+@refreshToken2 = 
 
 ### =========================================
 ### 12) Invitar compañero (requiere admin)

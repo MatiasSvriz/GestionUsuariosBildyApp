@@ -181,25 +181,35 @@ export const validateEmailCode = async (req, res, next) => {
 
   export const updatePersonalData = async (req, res, next) => {
     try {
-      const { name, lastName, nif } = req.body;
+      const { name, lastName, nif, address } = req.body;
+      const user = req.user;
   
-      req.user.name = name;
-      req.user.lastName = lastName;
-      req.user.nif = nif;
+      user.name = name;
+      user.lastName = lastName;
+      user.nif = nif;
   
-      await req.user.save();
+      if (address) {
+        user.address.street = address.street;
+        user.address.number = address.number;
+        user.address.postal = address.postal;
+        user.address.city = address.city;
+        user.address.province = address.province;
+      }
   
-      res.status(200).json({
+      await user.save();
+  
+      return res.status(200).json({
         ok: true,
         data: {
           user: {
-            email: req.user.email,
-            name: req.user.name,
-            lastName: req.user.lastName,
-            nif: req.user.nif,
-            fullName: req.user.fullName,
-            status: req.user.status,
-            role: req.user.role
+            email: user.email,
+            name: user.name,
+            lastName: user.lastName,
+            nif: user.nif,
+            address: user.address,
+            fullName: user.fullName,
+            status: user.status,
+            role: user.role
           }
         }
       });
@@ -277,6 +287,7 @@ export const validateEmailCode = async (req, res, next) => {
 
   export const uploadCompanyLogo = async (req, res, next) => {
     try {
+  
       const user = req.user;
   
       if (!user.company) {

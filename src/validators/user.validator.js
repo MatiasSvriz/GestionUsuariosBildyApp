@@ -41,7 +41,14 @@ export const updatePersonalDataValidator = z.object({
   body: z.object({
     name: z.string().trim().min(1, 'El nombre es obligatorio'),
     lastName: z.string().trim().min(1, 'Los apellidos son obligatorios'),
-    nif: z.string().trim().min(1, 'El NIF es obligatorio')
+    nif: z.string().trim().min(1, 'El NIF es obligatorio'),
+    address: z.object({
+      street: z.string().trim().min(1, 'La calle es obligatoria'),
+      number: z.string().trim().min(1, 'El número es obligatorio'),
+      postal: z.string().trim().min(1, 'El código postal es obligatorio'),
+      city: z.string().trim().min(1, 'La ciudad es obligatoria'),
+      province: z.string().trim().min(1, 'La provincia es obligatoria')
+    }).optional()
   })
 });
 
