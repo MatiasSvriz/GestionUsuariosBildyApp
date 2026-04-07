@@ -122,11 +122,6 @@ export const validateEmailCode = async (req, res, next) => {
       user.status = 'verified';
       user.verificationCode = null;
       await user.save();
-
-      notificationService.emit('user:verified', {
-        userId: user._id,
-        email: user.email
-      });
   
       res.status(200).json({
         ok: true,

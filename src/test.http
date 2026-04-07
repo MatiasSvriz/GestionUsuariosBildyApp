@@ -1,10 +1,17 @@
 ### =========================================
 ### BildyApp - REST Client tests
-### Archivo para VS Code REST Client
 ### =========================================
 
 @baseUrl = http://localhost:3000/api/user
 @json = application/json
+
+### =========================================
+### VARIABLES
+### Rellena estos valores manualmente
+### =========================================
+@accessToken = ACCESS_TOKEN
+@refreshToken = REFRESH_TOKEN
+@verificationCode = CODIGO_MONGODB
 
 ### =========================================
 ### 0) Health check
@@ -13,7 +20,6 @@ GET http://localhost:3000/health
 
 ### =========================================
 ### 1) Registro de usuario
-### Copia el accessToken y refreshToken de la respuesta
 ### =========================================
 POST {{baseUrl}}/register
 Content-Type: {{json}}
@@ -24,16 +30,8 @@ Content-Type: {{json}}
 }
 
 ### =========================================
-### VARIABLES MANUALES
-### Pega aquí los valores que te devuelva el register/login
-### =========================================
-@accessToken = 
-@refreshToken = 
-@verificationCode = 
-
-### =========================================
 ### 2) Validación del email
-### El code lo sacas de MongoDB Atlas
+### El código se obtiene de MongoDB
 ### =========================================
 PUT {{baseUrl}}/validation
 Content-Type: {{json}}
@@ -45,13 +43,13 @@ Authorization: Bearer {{accessToken}}
 
 ### =========================================
 ### 3) Login
-### Copia el nuevo accessToken y refreshToken
+### Copia aquí el nuevo accessToken y refreshToken
 ### =========================================
 POST {{baseUrl}}/login
 Content-Type: {{json}}
 
 {
-  "email": "matias.test@test.com",
+  "email": "matias.ejemplo@test.com",
   "password": "12345678"
 }
 
@@ -69,8 +67,7 @@ Authorization: Bearer {{accessToken}}
 }
 
 ### =========================================
-### 4B) Onboarding - Datos personales con dirección
-### Usa esta si tu endpoint ya guarda address también
+### 5) Onboarding - Datos personales con dirección
 ### =========================================
 PUT {{baseUrl}}/register
 Content-Type: {{json}}
@@ -90,8 +87,7 @@ Authorization: Bearer {{accessToken}}
 }
 
 ### =========================================
-### 5A) Onboarding - Company normal
-### isFreelance = false
+### 6A) Onboarding - Company normal
 ### =========================================
 PATCH {{baseUrl}}/company
 Content-Type: {{json}}
@@ -111,7 +107,7 @@ Authorization: Bearer {{accessToken}}
 }
 
 ### =========================================
-### 5B) Onboarding - Autónomo
+### 6B) Onboarding - Autónomo
 ### Usa el NIF y los datos del usuario
 ### =========================================
 PATCH {{baseUrl}}/company
@@ -123,48 +119,46 @@ Authorization: Bearer {{accessToken}}
 }
 
 ### =========================================
-### 6) Subir logo de la compañía
-### Cambia la ruta del fichero por una imagen real
-### No pongas Content-Type manualmente
+### 7) Subir logo de la compañía
+### Cambia la ruta por una imagen real
 ### =========================================
 PATCH {{baseUrl}}/logo
 Authorization: Bearer {{accessToken}}
-Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="logo"; filename="lotuselise.jpeg"
+--boundary
+Content-Disposition: form-data; name="logo"; filename="logo.jpeg"
 Content-Type: image/jpeg
 
 < ../uploads/logo.jpeg
-------WebKitFormBoundary7MA4YWxkTrZu0gW--
+--boundary--
 
 ### =========================================
-### 7) Obtener usuario autenticado
+### 8) Obtener usuario autenticado
 ### Debe traer company con populate y fullName
 ### =========================================
 GET {{baseUrl}}
 Authorization: Bearer {{accessToken}}
 
 ### =========================================
-### 8) Refresh token
+### 9) Refresh token
 ### Devuelve un nuevo accessToken
 ### =========================================
 POST {{baseUrl}}/refresh
 Content-Type: {{json}}
 
 {
-  "refreshToken": "{{accessToken}}"
+  "refreshToken": "{{refreshToken}}"
 }
 
 ### =========================================
-### 9) Logout
+### 10) Logout
 ### Invalida el refresh token guardado
 ### =========================================
 POST {{baseUrl}}/logout
 Authorization: Bearer {{accessToken}}
 
 ### =========================================
-### 10) Cambiar contraseña
+### 11) Cambiar contraseña
 ### La nueva debe ser distinta a la actual
 ### =========================================
 PUT {{baseUrl}}/password
@@ -177,30 +171,24 @@ Authorization: Bearer {{accessToken}}
 }
 
 ### =========================================
-### 11) Login con la nueva contraseña
+### 12) Login con la nueva contraseña
 ### =========================================
 POST {{baseUrl}}/login
 Content-Type: {{json}}
 
 {
-  "email": "matias.test@test.com",
+  "email": "matias.ejemplo@test.com",
   "password": "87654321"
 }
 
 ### =========================================
-### VARIABLES MANUALES NUEVAS
-### Pega aquí el nuevo accessToken / refreshToken tras el login
-### =========================================
-@accessToken2 = 
-@refreshToken2 = 
-
-### =========================================
-### 12) Invitar compañero (requiere admin)
-### El usuario invitado entra como guest y con la misma company
+### 13) Invitar compañero
+### Requiere admin
+### El invitado entra como guest y con la misma company
 ### =========================================
 POST {{baseUrl}}/invite
 Content-Type: {{json}}
-Authorization: Bearer {{accessToken2}}
+Authorization: Bearer {{accessToken}}
 
 {
   "email": "companero.demo@test.com",
@@ -211,7 +199,7 @@ Authorization: Bearer {{accessToken2}}
 }
 
 ### =========================================
-### 13) Login del invitado
+### 14) Login del invitado
 ### =========================================
 POST {{baseUrl}}/login
 Content-Type: {{json}}
@@ -222,54 +210,13 @@ Content-Type: {{json}}
 }
 
 ### =========================================
-### 14) Soft delete del usuario autenticado
+### 15) Soft delete del usuario autenticado
 ### =========================================
 DELETE {{baseUrl}}?soft=true
-Authorization: Bearer {{accessToken2}}
+Authorization: Bearer {{accessToken}}
 
 ### =========================================
-### 15) Hard delete del usuario autenticado
-### OJO: esto borra el usuario físicamente
+### 16) Hard delete del usuario autenticado
 ### =========================================
 DELETE {{baseUrl}}
-Authorization: Bearer {{accessToken2}}
-
-### =========================================
-### TESTS DE ERROR ÚTILES
-### =========================================
-
-### Register duplicado -> debe dar 409
-POST {{baseUrl}}/register
-Content-Type: {{json}}
-
-{
-  "email": "matias.demo@test.com",
-  "password": "12345678"
-}
-
-### Validation con código incorrecto -> debe dar 4XX
-PUT {{baseUrl}}/validation
-Content-Type: {{json}}
 Authorization: Bearer {{accessToken}}
-
-{
-  "code": "000000"
-}
-
-### Refresh con token inválido -> debe dar 401
-POST {{baseUrl}}/refresh
-Content-Type: {{json}}
-
-{
-  "refreshToken": "token-invalido"
-}
-
-### Cambio de contraseña con misma contraseña -> debe fallar por Zod refine
-PUT {{baseUrl}}/password
-Content-Type: {{json}}
-Authorization: Bearer {{accessToken}}
-
-{
-  "currentPassword": "87654321",
-  "newPassword": "87654321"
-}
