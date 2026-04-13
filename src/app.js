@@ -1,9 +1,9 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import mongoSanitize from 'express-mongo-sanitize';
 import rateLimit from 'express-rate-limit';
-
+import morganBody from 'morgan-body';
+import { loggerStream } from './utils/handleLogger.js';
 import userRoutes from './routes/user.routes.js';
 import { notFoundHandler, errorHandler } from './middleware/error-handler.js';
 
@@ -25,6 +25,12 @@ app.use(rateLimit({
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
+
+morganBody(app, {
+  noColors: true,
+  skip: (req, res) => res.statusCode < 400, // Solo errores
+  stream: loggerStream
+});
 
 app.use('/uploads', express.static('uploads'));
 
