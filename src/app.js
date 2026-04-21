@@ -1,39 +1,44 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import rateLimit from 'express-rate-limit';
 import morganBody from 'morgan-body';
-import { loggerStream } from './utils/handleLogger.js';
-import userRoutes from './routes/user.routes.js';
+
+import apiRoutes from './routes/index.js';
+import limiter from './middleware/rate-limit.js';
 import { notFoundHandler, errorHandler } from './middleware/error-handler.js';
+import { loggerStream } from './services/logger.service.js';
 
 const app = express();
 
+// Seguridad básica
 app.use(helmet());
 
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+// CORS
+app.use(
+  cors({
+    origin: true,
+    credentials: true
+  })
+);
 
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false
-}));
+// Rate limiting global
+app.use(limiter);
 
+// Parseo del body
 app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
+// Logging HTTP
 morganBody(app, {
   noColors: true,
-  skip: (req, res) => res.statusCode < 400, // Solo errores
+  skip: (req, res) => res.statusCode < 400,
   stream: loggerStream
 });
 
+// Archivos estáticos
 app.use('/uploads', express.static('uploads'));
 
+// Health check
 app.get('/health', (req, res) => {
   res.status(200).json({
     ok: true,
@@ -42,9 +47,13 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.use('/api/user', userRoutes);
+// Rutas principales
+app.use('/api', apiRoutes);
 
+// 404
 app.use(notFoundHandler);
+
+// Manejador global de errores
 app.use(errorHandler);
 
 export default app;
