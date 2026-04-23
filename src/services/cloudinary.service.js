@@ -112,6 +112,31 @@ class CloudinaryService {
       transformation: transformations
     });
   }
+
+  async uploadSignature(buffer, deliveryNoteId) {
+    return this.uploadBuffer(buffer, {
+      folder: 'bildyapp/signatures',
+      resourceType: 'image',
+      publicId: `signature_${deliveryNoteId}`,
+      overwrite: true,
+      transformation: [
+        { width: 800, crop: 'limit' },
+        { quality: 'auto:good' },
+        { fetch_format: 'webp' }
+      ]
+    });
+  }
+
+  async uploadPdf(buffer, deliveryNoteId) {
+    return this.uploadBuffer(buffer, {
+      folder: 'bildyapp/pdfs',
+      resourceType: 'raw',
+      publicId: `deliverynote_${deliveryNoteId}`,
+      overwrite: true,
+      format: 'pdf'
+    });
+  }
+
 }
 
 export default new CloudinaryService();

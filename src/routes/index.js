@@ -14,9 +14,15 @@ const files = readdirSync(__dirname).filter(file =>
 // Cargar automáticamente cada ruta
 for (const file of files) {
   const routeName = file.replace('.routes.js', '');
-  const routeModule = await import(join(__dirname, file));
 
-  router.use(`/${routeName}`, routeModule.default);
+  try {
+    console.log('Cargando ruta:', file);
+    const routeModule = await import(join(__dirname, file));
+    router.use(`/${routeName}`, routeModule.default);
+  } catch (error) {
+    console.error('Error cargando ruta:', file);
+    throw error;
+  }
 }
 
 export default router;

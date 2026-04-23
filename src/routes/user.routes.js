@@ -13,8 +13,8 @@ import {
   changePassword,
   inviteUser
 } from '../controllers/user.controller.js';
-import { validate } from '../middleware/validate.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import validate from '../middleware/validate.js';
+import authMiddleware from '../middleware/auth.middleware.js';
 import { uploadLogo } from '../middleware/upload.js';
 import {
   registerUserValidator,
@@ -35,7 +35,7 @@ router.put('/validation', authMiddleware, validate(validateEmailCodeValidator), 
 router.post('/login', validate(loginUserValidator), loginUser);
 router.put('/register', authMiddleware, validate(updatePersonalDataValidator), updatePersonalData);
 router.patch('/company', authMiddleware, validate(updateCompanyValidator), updateCompanyData);
-router.patch('/logo', authMiddleware, uploadLogo.single('logo'), uploadCompanyLogo);
+router.patch('/logo', authMiddleware, uploadLogo, uploadCompanyLogo);
 router.get('/', authMiddleware, getUser);
 router.post('/refresh', validate(refreshTokenValidator), refreshAccessToken);
 router.post('/logout', authMiddleware, logoutUser);

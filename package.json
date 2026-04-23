@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "node --watch --env-file=.env src/index.js",
-    "start": "node --env-file=.env src/index.js"
+    "start": "node --env-file=.env src/index.js",
+    "test": "cross-env NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit --detectOpenHandles",
+    "test:watch": "npm test -- --watch",
+    "test:coverage": "npm test -- --coverage"
   },
   "repository": {
     "type": "git",
@@ -30,8 +33,13 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.3.1",
     "multer": "^2.1.1",
+    "pdfkit": "^0.18.0",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "jest": "^30.3.0"
   }
 }

@@ -1,0 +1,175 @@
+@baseUrl = http://localhost:3000
+@json = application/json
+
+###
+# LOGIN
+# Ajusta email/password a un usuario real de tu BD
+POST {{baseUrl}}/api/user/login
+Content-Type: {{json}}
+
+{
+  "email": "matias.ejemplo@test.com",
+  "password": "$2b$10$MBRaFH1NKIUMDN428Cj6UuCtfPR3z4Yu032lABahZP5UfNLE0qJz6"
+}
+
+> {%
+  // Usa una de estas dos según tu respuesta real
+  client.global.set("token", response.body.accessToken || response.body.token);
+%}
+
+###
+# CREAR CLIENTE
+POST {{baseUrl}}/api/client
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "name": "Cliente Demo",
+  "cif": "B12345678",
+  "email": "cliente@demo.com",
+  "phone": "600123123",
+  "address": {
+    "street": "Calle Mayor",
+    "number": "10",
+    "postal": "28001",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+> {%
+  client.global.set("clientId", response.body.data?._id || response.body.client?._id);
+%}
+
+###
+# LISTAR CLIENTES
+GET {{baseUrl}}/api/client
+Authorization: Bearer {{token}}
+
+###
+# CREAR PROYECTO
+POST {{baseUrl}}/api/project
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "client": "{{clientId}}",
+  "name": "Proyecto Reforma Local",
+  "projectCode": "PR-001",
+  "email": "obra@demo.com",
+  "notes": "Proyecto de prueba",
+  "active": true,
+  "address": {
+    "street": "Avenida Central",
+    "number": "22",
+    "postal": "28002",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+> {%
+  client.global.set("projectId", response.body.data?._id || response.body.project?._id);
+%}
+
+###
+# LISTAR PROYECTOS
+GET {{baseUrl}}/api/project
+Authorization: Bearer {{token}}
+
+###
+# CREAR ALBARÁN DE MATERIAL
+POST {{baseUrl}}/api/deliverynote
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "client": "{{clientId}}",
+  "project": "{{projectId}}",
+  "format": "material",
+  "description": "Entrega de cemento",
+  "workDate": "2026-04-23",
+  "material": "Cemento",
+  "quantity": 20,
+  "unit": "sacos"
+}
+
+> {%
+  client.global.set("deliveryNoteId", response.body.data?._id || response.body.deliveryNote?._id);
+%}
+
+###
+# OBTENER ALBARÁN POR ID
+GET {{baseUrl}}/api/deliverynote/{{deliveryNoteId}}
+Authorization: Bearer {{token}}
+
+###
+# LISTAR ALBARANES
+GET {{baseUrl}}/api/deliverynote?page=1&limit=10&sort=-workDate
+Authorization: Bearer {{token}}
+
+###
+# OBTENER PDF ANTES DE FIRMAR
+# Debe devolver el PDF generado al vuelo
+GET {{baseUrl}}/api/deliverynote/pdf/{{deliveryNoteId}}
+Authorization: Bearer {{token}}
+
+###
+# BORRAR ALBARÁN NO FIRMADO
+# Este debería funcionar si el albarán no está firmado
+DELETE {{baseUrl}}/api/deliverynote/{{deliveryNoteId}}
+Authorization: Bearer {{token}}
+
+###
+# CREAR OTRO ALBARÁN DE MATERIAL PARA PROBAR FIRMA
+POST {{baseUrl}}/api/deliverynote
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "client": "{{clientId}}",
+  "project": "{{projectId}}",
+  "format": "material",
+  "description": "Entrega de yeso",
+  "workDate": "2026-04-23",
+  "material": "Yeso",
+  "quantity": 10,
+  "unit": "bolsas"
+}
+
+> {%
+  client.global.set("deliveryNoteToSignId", response.body.data?._id || response.body.deliveryNote?._id);
+%}
+
+###
+# FIRMAR ALBARÁN
+# IMPORTANTE:
+# - cambia la ruta local del archivo firma.png
+# - el nombre del campo debe ser "signature"
+PATCH {{baseUrl}}/api/deliverynote/{{deliveryNoteToSignId}}/sign
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=MyBoundary
+
+--MyBoundary
+Content-Disposition: form-data; name="signature"; filename="firma.png"
+Content-Type: image/png
+
+< ./firma.png
+--MyBoundary--
+
+###
+# OBTENER ALBARÁN YA FIRMADO
+GET {{baseUrl}}/api/deliverynote/{{deliveryNoteToSignId}}
+Authorization: Bearer {{token}}
+
+###
+# OBTENER PDF DE ALBARÁN FIRMADO
+# Si todo está bien, debería devolver pdfUrl de Cloudinary
+GET {{baseUrl}}/api/deliverynote/pdf/{{deliveryNoteToSignId}}
+Authorization: Bearer {{token}}
+
+###
+# INTENTAR BORRAR ALBARÁN FIRMADO
+# Esto debería FALLAR
+DELETE {{baseUrl}}/api/deliverynote/{{deliveryNoteToSignId}}
+Authorization: Bearer {{token}}

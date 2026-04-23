@@ -1,35 +1,27 @@
 import multer from 'multer';
-import path from 'node:path';
-import fs from 'node:fs';
+import { AppError } from '../utils/AppError.js';
 
-const uploadDir = 'uploads';
+const storage = multer.memoryStorage();
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+const imageFilter = (req, file, cb) => {
+  const allowed = ['image/png', 'image/jpeg', 'image/webp'];
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  }
-});
-
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    return cb(null, true);
+  if (!allowed.includes(file.mimetype)) {
+    return cb(AppError.badRequest('Tipo de archivo no permitido'));
   }
 
-  cb(new Error('Solo se permiten imágenes'));
+  cb(null, true);
 };
 
-export const uploadLogo = multer({
+const upload = multer({
   storage,
-  fileFilter,
+  fileFilter: imageFilter,
   limits: {
     fileSize: 5 * 1024 * 1024
   }
 });
+
+export const uploadLogo = upload.single('logo');
+export const uploadSignature = upload.single('signature');
+
+export default upload;

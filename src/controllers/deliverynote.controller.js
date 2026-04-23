@@ -1,6 +1,8 @@
 import DeliveryNote from '../models/DeliveryNote.js';
 import Project from '../models/Project.js';
 import Client from '../models/Client.js';
+import cloudinaryService from '../services/cloudinary.service.js';
+import pdfService from '../services/pdf.service.js';
 import { AppError } from '../utils/AppError.js';
 
 // Paginación simple
@@ -30,7 +32,6 @@ export const createDeliveryNote = async (req, res, next) => {
       workers
     } = req.body;
 
-    // 1. Validar client
     const existingClient = await Client.findOne({
       _id: client,
       company: req.user.company,
@@ -41,7 +42,6 @@ export const createDeliveryNote = async (req, res, next) => {
       throw AppError.notFound('Cliente');
     }
 
-    // 2. Validar project
     const existingProject = await Project.findOne({
       _id: project,
       company: req.user.company,
@@ -52,12 +52,10 @@ export const createDeliveryNote = async (req, res, next) => {
       throw AppError.notFound('Proyecto');
     }
 
-    // 3. Validar relación project → client
     if (existingProject.client.toString() !== client) {
       throw AppError.badRequest('El proyecto no pertenece a ese cliente');
     }
 
-    // 4. Validar lógica de formato (simple)
     if (format === 'material') {
       if (!material || !quantity || !unit) {
         throw AppError.badRequest('Faltan datos de material');
@@ -90,7 +88,6 @@ export const createDeliveryNote = async (req, res, next) => {
       message: 'Albarán creado correctamente',
       data: deliveryNote
     });
-
   } catch (error) {
     next(error);
   }
@@ -108,7 +105,6 @@ export const getDeliveryNotes = async (req, res, next) => {
       deleted: false
     };
 
-    // Filtros
     if (req.query.project) {
       filter.project = req.query.project;
     }
@@ -129,7 +125,6 @@ export const getDeliveryNotes = async (req, res, next) => {
       filter.signed = false;
     }
 
-    // Filtro por fechas
     if (req.query.from || req.query.to) {
       filter.workDate = {};
 
@@ -146,7 +141,6 @@ export const getDeliveryNotes = async (req, res, next) => {
       .populate('client')
       .populate('project');
 
-    // Ordenación
     if (req.query.sort) {
       query = query.sort(req.query.sort);
     } else {
@@ -166,7 +160,6 @@ export const getDeliveryNotes = async (req, res, next) => {
         limit
       }
     });
-
   } catch (error) {
     next(error);
   }
@@ -196,7 +189,6 @@ export const getDeliveryNoteById = async (req, res, next) => {
       ok: true,
       data: note
     });
-
   } catch (error) {
     next(error);
   }
@@ -218,7 +210,6 @@ export const deleteDeliveryNote = async (req, res, next) => {
       throw AppError.notFound('Albarán');
     }
 
-    // 🚨 Regla clave del enunciado
     if (note.signed) {
       throw AppError.badRequest('No se puede borrar un albarán firmado');
     }
@@ -232,7 +223,110 @@ export const deleteDeliveryNote = async (req, res, next) => {
       ok: true,
       message: 'Albarán eliminado correctamente'
     });
+  } catch (error) {
+    next(error);
+  }
+};
 
+// ============================
+// SIGN
+// ============================
+export const signDeliveryNote = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const note = await DeliveryNote.findOne({
+      _id: id,
+      company: req.user.company,
+      deleted: false
+    })
+      .populate('user')
+      .populate('client')
+      .populate('project');
+
+    if (!note) {
+      throw AppError.notFound('Albarán');
+    }
+
+    if (note.signed) {
+      throw AppError.badRequest('El albarán ya está firmado');
+    }
+
+    if (!req.file) {
+      throw AppError.badRequest('Debes subir una imagen de firma');
+    }
+
+    // 1) Subir firma a Cloudinary
+    const signatureUpload = await cloudinaryService.uploadSignature(
+      req.file.buffer,
+      note._id
+    );
+
+    note.signed = true;
+    note.signedAt = new Date();
+    note.signatureUrl = signatureUpload.secure_url;
+
+    // 2) Generar PDF con la firma ya asociada al albarán
+    const pdfBuffer = await pdfService.generateDeliveryNotePdf(note);
+
+    // 3) Subir PDF a Cloudinary
+    const pdfUpload = await cloudinaryService.uploadPdf(
+      pdfBuffer,
+      note._id
+    );
+
+    note.pdfUrl = pdfUpload.secure_url;
+
+    await note.save();
+
+    res.status(200).json({
+      ok: true,
+      message: 'Albarán firmado correctamente',
+      data: note
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================
+// PDF
+// ============================
+export const getDeliveryNotePdf = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const note = await DeliveryNote.findOne({
+      _id: id,
+      company: req.user.company,
+      deleted: false
+    })
+      .populate('user')
+      .populate('client')
+      .populate('project');
+
+    if (!note) {
+      throw AppError.notFound('Albarán');
+    }
+
+    // Si ya está firmado y tiene PDF subido, devolvemos la URL
+    if (note.signed && note.pdfUrl) {
+      return res.status(200).json({
+        ok: true,
+        pdfUrl: note.pdfUrl
+      });
+    }
+
+    // Si no existe todavía, lo generamos al vuelo
+    const pdfBuffer = await pdfService.generateDeliveryNotePdf(note);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="deliverynote-${note._id}.pdf"`
+    );
+
+    return res.send(pdfBuffer);
   } catch (error) {
     next(error);
   }
