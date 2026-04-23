@@ -8,6 +8,9 @@ import limiter from './middleware/rate-limit.js';
 import { notFoundHandler, errorHandler } from './middleware/error-handler.js';
 import { loggerStream } from './services/logger.service.js';
 
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './config/swagger.js';
+
 const app = express();
 
 // Seguridad básica
@@ -27,6 +30,9 @@ app.use(limiter);
 // Parseo del body
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// Swagger 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Logging HTTP
 morganBody(app, {

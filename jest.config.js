@@ -1,4 +1,5 @@
 export default {
   testEnvironment: 'node',
-  transform: {}, // importante para evitar problemas con ESM
-};  
+  setupFilesAfterEnv: ['./tests/setup.js'],
+  transform: {}
+};
