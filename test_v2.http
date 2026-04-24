@@ -2,30 +2,332 @@
 @json = application/json
 
 ###
-# LOGIN
-# Ajusta email/password a un usuario real de tu BD
+### =========================================================
+### BILDYAPP - TEST E2E MANUAL CON REST CLIENT
+### Flujo completo:
+### 1) Registro
+### 2) Validación email
+### 3) Login
+### 4) Onboarding usuario
+### 5) Onboarding company
+### 6) Logo company
+### 7) Get user
+### 8) Refresh / logout / password
+### 9) Clientes
+### 10) Proyectos
+### 11) Albaranes
+### 12) Casos negativos
+### 13) Limpieza
+### =========================================================
+
+###
+### VARIABLES DE APOYO
+@userEmail = matias.demo+{{$timestamp}}@test.com
+@userPassword = TestPassword123!
+@userNewPassword = TestPassword456!
+@verificationCode = 123456
+@logoPath = ./logo.png
+@signaturePath = ./firma.png
+
+###
+### HEALTH
+GET {{baseUrl}}/health
+
+###
+### SWAGGER
+GET {{baseUrl}}/api-docs
+
+###
+### =========================================================
+### 1) REGISTRO DE USUARIO
+### =========================================================
+POST {{baseUrl}}/api/user/register
+Content-Type: {{json}}
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+> {%
+  client.test("Registro devuelve 200/201", function() {
+    client.assert(response.status === 200 || response.status === 201, "Status inesperado");
+  });
+
+  const body = response.body || {};
+
+  client.global.set("token", body.accessToken || body.token || "");
+  client.global.set("refreshToken", body.refreshToken || "");
+  client.global.set("registeredEmail", body.data?.email || body.user?.email || "{{userEmail}}");
+
+  // Por si tu backend devuelve user dentro de data o user
+  client.global.set("userId", body.data?._id || body.user?._id || "");
+
+  // Si tu backend expone el código en desarrollo, lo aprovechamos
+  if (body.data?.verificationCode) client.global.set("verificationCode", body.data.verificationCode);
+  if (body.user?.verificationCode) client.global.set("verificationCode", body.user.verificationCode);
+%}
+
+###
+### REGISTRO DUPLICADO (debe fallar)
+POST {{baseUrl}}/api/user/register
+Content-Type: {{json}}
+
+{
+  "email": "{{registeredEmail}}",
+  "password": "{{userPassword}}"
+}
+
+###
+### REGISTRO INVÁLIDO (debe fallar)
+POST {{baseUrl}}/api/user/register
+Content-Type: {{json}}
+
+{
+  "email": "correo-invalido",
+  "password": "123"
+}
+
+###
+### =========================================================
+### 2) VALIDACIÓN DE EMAIL
+### IMPORTANTE:
+### - Si tu API NO devuelve verificationCode en registro,
+###   saca el código de MongoDB/Compass y pégalo en @verificationCode
+### =========================================================
+PUT {{baseUrl}}/api/user/validation
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "code": "{{verificationCode}}"
+}
+
+###
+### VALIDACIÓN CON CÓDIGO INCORRECTO (debe fallar)
+PUT {{baseUrl}}/api/user/validation
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "code": "000000"
+}
+
+###
+### =========================================================
+### 3) LOGIN
+### OJO: aquí va la contraseña REAL, no el hash bcrypt
+### =========================================================
 POST {{baseUrl}}/api/user/login
 Content-Type: {{json}}
 
 {
-  "email": "matias.ejemplo@test.com",
-  "password": "$2b$10$MBRaFH1NKIUMDN428Cj6UuCtfPR3z4Yu032lABahZP5UfNLE0qJz6"
+  "email": "{{registeredEmail}}",
+  "password": "{{userPassword}}"
 }
 
 > {%
-  // Usa una de estas dos según tu respuesta real
-  client.global.set("token", response.body.accessToken || response.body.token);
+  client.test("Login correcto", function() {
+    client.assert(response.status === 200, "El login debería devolver 200");
+  });
+
+  const body = response.body || {};
+  client.global.set("token", body.accessToken || body.token || "");
+  client.global.set("refreshToken", body.refreshToken || "");
+  client.global.set("userId", body.data?._id || body.user?._id || client.global.get("userId") || "");
 %}
 
 ###
-# CREAR CLIENTE
+### LOGIN CON PASSWORD INCORRECTA (debe fallar)
+POST {{baseUrl}}/api/user/login
+Content-Type: {{json}}
+
+{
+  "email": "{{registeredEmail}}",
+  "password": "PasswordIncorrecta123!"
+}
+
+###
+### LOGIN CON EMAIL NO EXISTENTE (debe fallar)
+POST {{baseUrl}}/api/user/login
+Content-Type: {{json}}
+
+{
+  "email": "no.existe.{{$timestamp}}@test.com",
+  "password": "TestPassword123!"
+}
+
+###
+### =========================================================
+### 4) ONBOARDING - DATOS PERSONALES
+### =========================================================
+PUT {{baseUrl}}/api/user/register
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "name": "Matias",
+  "lastName": "Demo Tester",
+  "nif": "12345678Z",
+  "address": {
+    "street": "Calle Falsa",
+    "number": "123",
+    "postal": "28001",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+### GET USUARIO AUTENTICADO (antes de company)
+GET {{baseUrl}}/api/user
+Authorization: Bearer {{token}}
+
+###
+### =========================================================
+### 5) ONBOARDING - COMPANY
+### =========================================================
+PATCH {{baseUrl}}/api/user/company
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "name": "Bildy Demo Company",
+  "cif": "B12345678",
+  "isFreelance": false,
+  "address": {
+    "street": "Avenida Empresa",
+    "number": "22",
+    "postal": "28002",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+### COMPANY COMO AUTÓNOMO
+### Úsalo solo si quieres probar esa rama de lógica
+# PATCH {{baseUrl}}/api/user/company
+# Authorization: Bearer {{token}}
+# Content-Type: {{json}}
+#
+# {
+#   "isFreelance": true
+# }
+
+###
+### GET USUARIO AUTENTICADO (con populate company)
+GET {{baseUrl}}/api/user
+Authorization: Bearer {{token}}
+
+###
+### =========================================================
+### 6) LOGO DE COMPANY
+### =========================================================
+PATCH {{baseUrl}}/api/user/logo
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=LogoBoundary
+
+--LogoBoundary
+Content-Disposition: form-data; name="logo"; filename="logo.png"
+Content-Type: image/png
+
+< {{logoPath}}
+--LogoBoundary--
+
+###
+### =========================================================
+### 7) REFRESH TOKEN
+### =========================================================
+POST {{baseUrl}}/api/user/refresh
+Content-Type: {{json}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+> {%
+  const body = response.body || {};
+  client.global.set("token", body.accessToken || body.token || client.global.get("token"));
+  client.global.set("refreshToken", body.refreshToken || client.global.get("refreshToken"));
+%}
+
+###
+### REFRESH INVÁLIDO (debe fallar)
+POST {{baseUrl}}/api/user/refresh
+Content-Type: {{json}}
+
+{
+  "refreshToken": "refresh_token_invalido"
+}
+
+###
+### =========================================================
+### 8) CAMBIAR CONTRASEÑA
+### =========================================================
+PUT {{baseUrl}}/api/user/password
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "currentPassword": "{{userPassword}}",
+  "newPassword": "{{userNewPassword}}"
+}
+
+###
+### LOGIN CON CONTRASEÑA NUEVA
+POST {{baseUrl}}/api/user/login
+Content-Type: {{json}}
+
+{
+  "email": "{{registeredEmail}}",
+  "password": "{{userNewPassword}}"
+}
+
+> {%
+  const body = response.body || {};
+  client.global.set("token", body.accessToken || body.token || client.global.get("token"));
+  client.global.set("refreshToken", body.refreshToken || client.global.get("refreshToken"));
+%}
+
+###
+### CAMBIO DE PASSWORD REPITIENDO LA MISMA (debe fallar)
+PUT {{baseUrl}}/api/user/password
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "currentPassword": "{{userNewPassword}}",
+  "newPassword": "{{userNewPassword}}"
+}
+
+###
+### =========================================================
+### 9) INVITAR COMPAÑERO (si lo tienes implementado)
+### =========================================================
+POST {{baseUrl}}/api/user/invite
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "email": "invitado.{{$timestamp}}@test.com",
+  "password": "GuestPassword123!",
+  "name": "Invitado",
+  "lastName": "Demo",
+  "nif": "87654321X"
+}
+
+###
+### =========================================================
+### 10) CREAR CLIENTE
+### =========================================================
 POST {{baseUrl}}/api/client
 Authorization: Bearer {{token}}
 Content-Type: {{json}}
 
 {
   "name": "Cliente Demo",
-  "cif": "B12345678",
+  "cif": "B76543210",
   "email": "cliente@demo.com",
   "phone": "600123123",
   "address": {
@@ -38,16 +340,69 @@ Content-Type: {{json}}
 }
 
 > {%
-  client.global.set("clientId", response.body.data?._id || response.body.client?._id);
+  const body = response.body || {};
+  client.global.set("clientId", body.data?._id || body.client?._id || "");
 %}
 
 ###
-# LISTAR CLIENTES
+### CREAR CLIENTE DUPLICADO EN LA MISMA COMPANY (debe fallar)
+POST {{baseUrl}}/api/client
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "name": "Cliente Demo Duplicado",
+  "cif": "B76543210",
+  "email": "cliente2@demo.com",
+  "phone": "600999999",
+  "address": {
+    "street": "Calle Mayor",
+    "number": "11",
+    "postal": "28001",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+### LISTAR CLIENTES
 GET {{baseUrl}}/api/client
 Authorization: Bearer {{token}}
 
 ###
-# CREAR PROYECTO
+### LISTAR CLIENTES CON PAGINACIÓN/FILTROS
+GET {{baseUrl}}/api/client?page=1&limit=10&name=Cliente&sort=createdAt
+Authorization: Bearer {{token}}
+
+###
+### OBTENER CLIENTE POR ID
+GET {{baseUrl}}/api/client/{{clientId}}
+Authorization: Bearer {{token}}
+
+###
+### ACTUALIZAR CLIENTE
+PUT {{baseUrl}}/api/client/{{clientId}}
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "name": "Cliente Demo Actualizado",
+  "cif": "B76543210",
+  "email": "cliente.actualizado@demo.com",
+  "phone": "611111111",
+  "address": {
+    "street": "Calle Nueva",
+    "number": "99",
+    "postal": "28003",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+### =========================================================
+### 11) CREAR PROYECTO
+### =========================================================
 POST {{baseUrl}}/api/project
 Authorization: Bearer {{token}}
 Content-Type: {{json}}
@@ -69,16 +424,73 @@ Content-Type: {{json}}
 }
 
 > {%
-  client.global.set("projectId", response.body.data?._id || response.body.project?._id);
+  const body = response.body || {};
+  client.global.set("projectId", body.data?._id || body.project?._id || "");
 %}
 
 ###
-# LISTAR PROYECTOS
+### CREAR PROYECTO DUPLICADO (debe fallar si projectCode es único en company)
+POST {{baseUrl}}/api/project
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "client": "{{clientId}}",
+  "name": "Proyecto Duplicado",
+  "projectCode": "PR-001",
+  "email": "obra2@demo.com",
+  "notes": "Duplicado",
+  "active": true,
+  "address": {
+    "street": "Avenida Central",
+    "number": "23",
+    "postal": "28002",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+### LISTAR PROYECTOS
 GET {{baseUrl}}/api/project
 Authorization: Bearer {{token}}
 
 ###
-# CREAR ALBARÁN DE MATERIAL
+### LISTAR PROYECTOS CON FILTROS
+GET {{baseUrl}}/api/project?page=1&limit=10&client={{clientId}}&name=Reforma&active=true&sort=-createdAt
+Authorization: Bearer {{token}}
+
+###
+### OBTENER PROYECTO POR ID
+GET {{baseUrl}}/api/project/{{projectId}}
+Authorization: Bearer {{token}}
+
+###
+### ACTUALIZAR PROYECTO
+PUT {{baseUrl}}/api/project/{{projectId}}
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "client": "{{clientId}}",
+  "name": "Proyecto Reforma Local Actualizado",
+  "projectCode": "PR-001",
+  "email": "obra.actualizada@demo.com",
+  "notes": "Proyecto actualizado",
+  "active": true,
+  "address": {
+    "street": "Avenida Reformada",
+    "number": "30",
+    "postal": "28004",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+###
+### =========================================================
+### 12) CREAR ALBARÁN DE MATERIAL
+### =========================================================
 POST {{baseUrl}}/api/deliverynote
 Authorization: Bearer {{token}}
 Content-Type: {{json}}
@@ -95,33 +507,72 @@ Content-Type: {{json}}
 }
 
 > {%
-  client.global.set("deliveryNoteId", response.body.data?._id || response.body.deliveryNote?._id);
+  const body = response.body || {};
+  client.global.set("deliveryNoteId", body.data?._id || body.deliveryNote?._id || "");
 %}
 
 ###
-# OBTENER ALBARÁN POR ID
+### CREAR ALBARÁN DE HORAS
+POST {{baseUrl}}/api/deliverynote
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "client": "{{clientId}}",
+  "project": "{{projectId}}",
+  "format": "hours",
+  "description": "Jornada de albañilería",
+  "workDate": "2026-04-23",
+  "hours": 8,
+  "workers": [
+    {
+      "name": "Operario 1",
+      "hours": 4
+    },
+    {
+      "name": "Operario 2",
+      "hours": 4
+    }
+  ]
+}
+
+> {%
+  const body = response.body || {};
+  client.global.set("deliveryNoteHoursId", body.data?._id || body.deliveryNote?._id || "");
+%}
+
+###
+### OBTENER ALBARÁN MATERIAL
 GET {{baseUrl}}/api/deliverynote/{{deliveryNoteId}}
 Authorization: Bearer {{token}}
 
 ###
-# LISTAR ALBARANES
+### OBTENER ALBARÁN HORAS
+GET {{baseUrl}}/api/deliverynote/{{deliveryNoteHoursId}}
+Authorization: Bearer {{token}}
+
+###
+### LISTAR ALBARANES
 GET {{baseUrl}}/api/deliverynote?page=1&limit=10&sort=-workDate
 Authorization: Bearer {{token}}
 
 ###
-# OBTENER PDF ANTES DE FIRMAR
-# Debe devolver el PDF generado al vuelo
+### LISTAR ALBARANES CON FILTROS
+GET {{baseUrl}}/api/deliverynote?page=1&limit=10&project={{projectId}}&client={{clientId}}&format=material&signed=false&from=2026-01-01&to=2026-12-31&sort=-workDate
+Authorization: Bearer {{token}}
+
+###
+### PDF ANTES DE FIRMAR
 GET {{baseUrl}}/api/deliverynote/pdf/{{deliveryNoteId}}
 Authorization: Bearer {{token}}
 
 ###
-# BORRAR ALBARÁN NO FIRMADO
-# Este debería funcionar si el albarán no está firmado
+### BORRAR ALBARÁN NO FIRMADO
 DELETE {{baseUrl}}/api/deliverynote/{{deliveryNoteId}}
 Authorization: Bearer {{token}}
 
 ###
-# CREAR OTRO ALBARÁN DE MATERIAL PARA PROBAR FIRMA
+### CREAR OTRO ALBARÁN PARA FIRMAR
 POST {{baseUrl}}/api/deliverynote
 Authorization: Bearer {{token}}
 Content-Type: {{json}}
@@ -138,38 +589,152 @@ Content-Type: {{json}}
 }
 
 > {%
-  client.global.set("deliveryNoteToSignId", response.body.data?._id || response.body.deliveryNote?._id);
+  const body = response.body || {};
+  client.global.set("deliveryNoteToSignId", body.data?._id || body.deliveryNote?._id || "");
 %}
 
 ###
-# FIRMAR ALBARÁN
-# IMPORTANTE:
-# - cambia la ruta local del archivo firma.png
-# - el nombre del campo debe ser "signature"
+### FIRMAR ALBARÁN
 PATCH {{baseUrl}}/api/deliverynote/{{deliveryNoteToSignId}}/sign
 Authorization: Bearer {{token}}
-Content-Type: multipart/form-data; boundary=MyBoundary
+Content-Type: multipart/form-data; boundary=SignBoundary
 
---MyBoundary
+--SignBoundary
 Content-Disposition: form-data; name="signature"; filename="firma.png"
 Content-Type: image/png
 
-< ./firma.png
---MyBoundary--
+< {{signaturePath}}
+--SignBoundary--
 
 ###
-# OBTENER ALBARÁN YA FIRMADO
+### OBTENER ALBARÁN YA FIRMADO
 GET {{baseUrl}}/api/deliverynote/{{deliveryNoteToSignId}}
 Authorization: Bearer {{token}}
 
 ###
-# OBTENER PDF DE ALBARÁN FIRMADO
-# Si todo está bien, debería devolver pdfUrl de Cloudinary
+### PDF DE ALBARÁN FIRMADO
 GET {{baseUrl}}/api/deliverynote/pdf/{{deliveryNoteToSignId}}
 Authorization: Bearer {{token}}
 
 ###
-# INTENTAR BORRAR ALBARÁN FIRMADO
-# Esto debería FALLAR
+### INTENTAR BORRAR ALBARÁN FIRMADO (debe fallar)
 DELETE {{baseUrl}}/api/deliverynote/{{deliveryNoteToSignId}}
 Authorization: Bearer {{token}}
+
+###
+### =========================================================
+### 13) ARCHIVADO / RESTAURACIÓN
+### =========================================================
+
+###
+### ARCHIVAR CLIENTE
+DELETE {{baseUrl}}/api/client/{{clientId}}?soft=true
+Authorization: Bearer {{token}}
+
+###
+### LISTAR CLIENTES ARCHIVADOS
+GET {{baseUrl}}/api/client/archived
+Authorization: Bearer {{token}}
+
+###
+### RESTAURAR CLIENTE
+PATCH {{baseUrl}}/api/client/{{clientId}}/restore
+Authorization: Bearer {{token}}
+
+###
+### ARCHIVAR PROYECTO
+DELETE {{baseUrl}}/api/project/{{projectId}}?soft=true
+Authorization: Bearer {{token}}
+
+###
+### LISTAR PROYECTOS ARCHIVADOS
+GET {{baseUrl}}/api/project/archived
+Authorization: Bearer {{token}}
+
+###
+### RESTAURAR PROYECTO
+PATCH {{baseUrl}}/api/project/{{projectId}}/restore
+Authorization: Bearer {{token}}
+
+###
+### =========================================================
+### 14) CASOS DE SEGURIDAD / AUTH
+### =========================================================
+
+###
+### GET USER SIN TOKEN (debe fallar)
+GET {{baseUrl}}/api/user
+
+###
+### GET USER CON TOKEN INVÁLIDO (debe fallar)
+GET {{baseUrl}}/api/user
+Authorization: Bearer token_invalido_123
+
+###
+### GET CLIENTE CON ID INVÁLIDO (debe fallar)
+GET {{baseUrl}}/api/client/id_invalido
+Authorization: Bearer {{token}}
+
+###
+### CREAR PROYECTO SIN CLIENT (debe fallar por validación)
+POST {{baseUrl}}/api/project
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "name": "Proyecto sin cliente",
+  "projectCode": "PR-ERROR",
+  "email": "error@demo.com",
+  "notes": "Debe fallar",
+  "active": true
+}
+
+###
+### CREAR ALBARÁN CON FORMAT INVÁLIDO (debe fallar)
+POST {{baseUrl}}/api/deliverynote
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "client": "{{clientId}}",
+  "project": "{{projectId}}",
+  "format": "otro",
+  "description": "Inválido",
+  "workDate": "2026-04-23"
+}
+
+###
+### =========================================================
+### 15) LOGOUT
+### =========================================================
+POST {{baseUrl}}/api/user/logout
+Authorization: Bearer {{token}}
+Content-Type: {{json}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+### REFRESH DESPUÉS DE LOGOUT (debe fallar)
+POST {{baseUrl}}/api/user/refresh
+Content-Type: {{json}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+### =========================================================
+### 16) ELIMINAR USUARIO
+### =========================================================
+
+###
+### SOFT DELETE USER
+DELETE {{baseUrl}}/api/user?soft=true
+Authorization: Bearer {{token}}
+
+###
+### HARD DELETE USER
+# DELETE {{baseUrl}}/api/user
+# Authorization: Bearer {{token}}
