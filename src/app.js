@@ -2,6 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morganBody from 'morgan-body';
+import mongoose from 'mongoose';
 
 import apiRoutes from './routes/index.js';
 import limiter from './middleware/rate-limit.js';
@@ -46,9 +47,14 @@ app.use('/uploads', express.static('uploads'));
 
 // Health check
 app.get('/health', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+
+  const dbStatus = dbState === 1 ? 'connected' : 'disconnected';
+
   res.status(200).json({
-    ok: true,
-    message: 'API funcionando',
+    status: 'ok',
+    db: dbStatus,
+    uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });
 });

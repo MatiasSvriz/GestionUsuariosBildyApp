@@ -16,11 +16,12 @@ RUN adduser --system --uid 1001 nodeapp
 
 # Copiar dependencias del stage anterior
 COPY --from=deps /app/node_modules ./node_modules
-COPY --chown=nodeapp:nodejs . .
+COPY --chown=nodeapp:nodejs package*.json ./
+COPY --chown=nodeapp:nodejs src ./src
 
 USER nodeapp
 
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["node", "src/app.js"]
+CMD ["node", "src/index.js"]
