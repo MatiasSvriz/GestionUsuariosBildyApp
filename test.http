@@ -1,222 +1,409 @@
-### =========================================
-### BildyApp - REST Client tests
-### =========================================
-
-@baseUrl = http://localhost:3000/api/user
+@baseUrl = http://localhost:3000
 @json = application/json
+@userPassword = TestPassword123!
+@userNewPassword = TestPassword456!
+@logoPath = ./logo.png
+@signaturePath = ./firma.png
 
-### =========================================
-### VARIABLES
-### Rellena estos valores manualmente
-### =========================================
-@accessToken = ACCESS_TOKEN
-@refreshToken = REFRESH_TOKEN
-@verificationCode = CODIGO_MONGODB
+### 0) HEALTH
+GET {{baseUrl}}/health
 
-### =========================================
-### 0) Health check
-### =========================================
-GET http://localhost:3000/health
 
-### =========================================
-### 1) Registro de usuario
-### =========================================
-POST {{baseUrl}}/register
+### 1) REGISTRO
+# @name register
+POST {{baseUrl}}/api/user/register
 Content-Type: {{json}}
 
 {
-  "email": "matias.ejemplo@test.com",
-  "password": "12345678"
+  "email": "matias.demo+{{$timestamp}}@test.com",
+  "password": "{{userPassword}}"
 }
 
-### =========================================
-### 2) Validación del email
-### El código se obtiene de MongoDB
-### =========================================
-PUT {{baseUrl}}/validation
-Content-Type: {{json}}
-Authorization: Bearer {{accessToken}}
 
-{
-  "code": "{{verificationCode}}"
-}
-
-### =========================================
-### 3) Login
-### Copia aquí el nuevo accessToken y refreshToken
-### =========================================
-POST {{baseUrl}}/login
+### 2) LOGIN
+# @name login
+POST {{baseUrl}}/api/user/login
 Content-Type: {{json}}
 
 {
-  "email": "matias.ejemplo@test.com",
-  "password": "12345678"
+  "email": "{{register.response.body.$.data.user.email}}",
+  "password": "{{userPassword}}"
 }
 
-### =========================================
-### 4) Onboarding - Datos personales
-### =========================================
-PUT {{baseUrl}}/register
+
+### 3) DATOS PERSONALES
+PUT {{baseUrl}}/api/user/register
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
 Content-Type: {{json}}
-Authorization: Bearer {{accessToken}}
 
 {
   "name": "Matias",
-  "lastName": "Svriz",
-  "nif": "12345678A"
-}
-
-### =========================================
-### 5) Onboarding - Datos personales con dirección
-### =========================================
-PUT {{baseUrl}}/register
-Content-Type: {{json}}
-Authorization: Bearer {{accessToken}}
-
-{
-  "name": "Matias",
-  "lastName": "Svriz",
-  "nif": "12345678A",
+  "lastName": "Demo Tester",
+  "nif": "12345678Z",
   "address": {
-    "street": "San Agustín",
-    "number": "4",
-    "postal": "24001",
-    "city": "León",
-    "province": "León"
-  }
-}
-
-### =========================================
-### 6A) Onboarding - Company normal
-### =========================================
-PATCH {{baseUrl}}/company
-Content-Type: {{json}}
-Authorization: Bearer {{accessToken}}
-
-{
-  "isFreelance": false,
-  "name": "Bildy Company",
-  "cif": "B12345678",
-  "address": {
-    "street": "Calle Mayor",
-    "number": "12",
+    "street": "Calle Falsa",
+    "number": "123",
     "postal": "28001",
     "city": "Madrid",
     "province": "Madrid"
   }
 }
 
-### =========================================
-### 6B) Onboarding - Autónomo
-### Usa el NIF y los datos del usuario
-### =========================================
-PATCH {{baseUrl}}/company
-Content-Type: {{json}}
-Authorization: Bearer {{accessToken}}
 
-{
-  "isFreelance": true
-}
-
-### =========================================
-### 7) Subir logo de la compañía
-### Cambia la ruta por una imagen real
-### =========================================
-PATCH {{baseUrl}}/logo
-Authorization: Bearer {{accessToken}}
-
---boundary
-Content-Disposition: form-data; name="logo"; filename="logo.jpeg"
-Content-Type: image/jpeg
-
-< ../uploads/logo.jpeg
---boundary--
-
-### =========================================
-### 8) Obtener usuario autenticado
-### Debe traer company con populate y fullName
-### =========================================
-GET {{baseUrl}}
-Authorization: Bearer {{accessToken}}
-
-### =========================================
-### 9) Refresh token
-### Devuelve un nuevo accessToken
-### =========================================
-POST {{baseUrl}}/refresh
+### 4) COMPANY
+PATCH {{baseUrl}}/api/user/company
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
 Content-Type: {{json}}
 
 {
-  "refreshToken": "{{refreshToken}}"
+  "name": "Bildy Demo Company",
+  "cif": "B{{$timestamp}}",
+  "isFreelance": false,
+  "address": {
+    "street": "Avenida Empresa",
+    "number": "22",
+    "postal": "28002",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
 }
 
-### =========================================
-### 10) Logout
-### Invalida el refresh token guardado
-### =========================================
-POST {{baseUrl}}/logout
-Authorization: Bearer {{accessToken}}
 
-### =========================================
-### 11) Cambiar contraseña
-### La nueva debe ser distinta a la actual
-### =========================================
-PUT {{baseUrl}}/password
-Content-Type: {{json}}
-Authorization: Bearer {{accessToken}}
+### 5) GET USER
+GET {{baseUrl}}/api/user
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
 
-{
-  "currentPassword": "12345678",
-  "newPassword": "87654321"
-}
 
-### =========================================
-### 12) Login con la nueva contraseña
-### =========================================
-POST {{baseUrl}}/login
-Content-Type: {{json}}
+### 6) LOGO COMPANY
+PATCH {{baseUrl}}/api/user/logo
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+Content-Type: multipart/form-data; boundary=LogoBoundary
 
-{
-  "email": "matias.ejemplo@test.com",
-  "password": "87654321"
-}
+--LogoBoundary
+Content-Disposition: form-data; name="logo"; filename="logo.png"
+Content-Type: image/png
 
-### =========================================
-### 13) Invitar compañero
-### Requiere admin
-### El invitado entra como guest y con la misma company
-### =========================================
-POST {{baseUrl}}/invite
-Content-Type: {{json}}
-Authorization: Bearer {{accessToken}}
+< {{logoPath}}
+--LogoBoundary--
 
-{
-  "email": "companero.demo@test.com",
-  "password": "12345678",
-  "name": "Ana",
-  "lastName": "Lopez",
-  "nif": "11111111A"
-}
 
-### =========================================
-### 14) Login del invitado
-### =========================================
-POST {{baseUrl}}/login
+### 7) CREAR CLIENTE
+# @name createClient
+POST {{baseUrl}}/api/client
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
 Content-Type: {{json}}
 
 {
-  "email": "companero.demo@test.com",
-  "password": "12345678"
+  "name": "Cliente Demo",
+  "cif": "C{{$timestamp}}",
+  "email": "cliente{{$timestamp}}@demo.com",
+  "phone": "600123123",
+  "address": {
+    "street": "Calle Mayor",
+    "number": "10",
+    "postal": "28001",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
 }
 
-### =========================================
-### 15) Soft delete del usuario autenticado
-### =========================================
-DELETE {{baseUrl}}?soft=true
-Authorization: Bearer {{accessToken}}
 
-### =========================================
-### 16) Hard delete del usuario autenticado
-### =========================================
-DELETE {{baseUrl}}
-Authorization: Bearer {{accessToken}}
+### 8) LISTAR CLIENTES
+GET {{baseUrl}}/api/client?page=1&limit=10&name=Cliente&sort=createdAt
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 9) OBTENER CLIENTE
+GET {{baseUrl}}/api/client/{{createClient.response.body.$.data._id}}
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 10) ACTUALIZAR CLIENTE
+PUT {{baseUrl}}/api/client/{{createClient.response.body.$.data._id}}
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+Content-Type: {{json}}
+
+{
+  "name": "Cliente Demo Actualizado",
+  "cif": "{{createClient.response.body.$.data.cif}}",
+  "email": "cliente.actualizado{{$timestamp}}@demo.com",
+  "phone": "611111111",
+  "address": {
+    "street": "Calle Nueva",
+    "number": "99",
+    "postal": "28003",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+
+### 11) CREAR PROYECTO
+# @name createProject
+POST {{baseUrl}}/api/project
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+Content-Type: {{json}}
+
+{
+  "client": "{{createClient.response.body.$.data._id}}",
+  "name": "Proyecto Reforma Local",
+  "projectCode": "PR-{{$timestamp}}",
+  "email": "obra{{$timestamp}}@demo.com",
+  "notes": "Proyecto de prueba",
+  "active": true,
+  "address": {
+    "street": "Avenida Central",
+    "number": "22",
+    "postal": "28002",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+
+### 12) LISTAR PROYECTOS
+GET {{baseUrl}}/api/project?page=1&limit=10&client={{createClient.response.body.$.data._id}}&active=true&sort=-createdAt
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 13) OBTENER PROYECTO
+GET {{baseUrl}}/api/project/{{createProject.response.body.$.data._id}}
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 14) CREAR ALBARÁN MATERIAL
+# @name createDeliveryNoteMaterial
+POST {{baseUrl}}/api/deliverynote
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+Content-Type: {{json}}
+
+{
+  "client": "{{createClient.response.body.$.data._id}}",
+  "project": "{{createProject.response.body.$.data._id}}",
+  "format": "material",
+  "description": "Entrega de cemento",
+  "workDate": "2026-04-23",
+  "material": "Cemento",
+  "quantity": 20,
+  "unit": "sacos"
+}
+
+
+### 15) CREAR ALBARÁN HORAS
+# @name createDeliveryNoteHours
+POST {{baseUrl}}/api/deliverynote
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+Content-Type: {{json}}
+
+{
+  "client": "{{createClient.response.body.$.data._id}}",
+  "project": "{{createProject.response.body.$.data._id}}",
+  "format": "hours",
+  "description": "Jornada de albañilería",
+  "workDate": "2026-04-23",
+  "hours": 8,
+  "workers": [
+    {
+      "name": "Operario 1",
+      "hours": 4
+    },
+    {
+      "name": "Operario 2",
+      "hours": 4
+    }
+  ]
+}
+
+
+### 16) LISTAR ALBARANES
+GET {{baseUrl}}/api/deliverynote?page=1&limit=10&sort=-workDate
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 17) OBTENER ALBARÁN MATERIAL
+GET {{baseUrl}}/api/deliverynote/{{createDeliveryNoteMaterial.response.body.$.data._id}}
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 18) PDF ALBARÁN MATERIAL
+GET {{baseUrl}}/api/deliverynote/pdf/{{createDeliveryNoteMaterial.response.body.$.data._id}}
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 19) CREAR ALBARÁN PARA FIRMAR
+# @name createDeliveryNoteToSign
+POST {{baseUrl}}/api/deliverynote
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+Content-Type: {{json}}
+
+{
+  "client": "{{createClient.response.body.$.data._id}}",
+  "project": "{{createProject.response.body.$.data._id}}",
+  "format": "material",
+  "description": "Entrega de yeso",
+  "workDate": "2026-04-23",
+  "material": "Yeso",
+  "quantity": 10,
+  "unit": "bolsas"
+}
+
+
+### 20) FIRMAR ALBARÁN
+PATCH {{baseUrl}}/api/deliverynote/{{createDeliveryNoteToSign.response.body.$.data._id}}/sign
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+Content-Type: multipart/form-data; boundary=SignBoundary
+
+--SignBoundary
+Content-Disposition: form-data; name="signature"; filename="firma.png"
+Content-Type: image/png
+
+< {{signaturePath}}
+--SignBoundary--
+
+
+### 21) PDF ALBARÁN FIRMADO
+GET {{baseUrl}}/api/deliverynote/pdf/{{createDeliveryNoteToSign.response.body.$.data._id}}
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 22) ARCHIVAR CLIENTE
+DELETE {{baseUrl}}/api/client/{{createClient.response.body.$.data._id}}?soft=true
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 23) LISTAR CLIENTES ARCHIVADOS
+GET {{baseUrl}}/api/client/archived
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 24) RESTAURAR CLIENTE
+PATCH {{baseUrl}}/api/client/{{createClient.response.body.$.data._id}}/restore
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 25) ARCHIVAR PROYECTO
+DELETE {{baseUrl}}/api/project/{{createProject.response.body.$.data._id}}?soft=true
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 26) LISTAR PROYECTOS ARCHIVADOS
+GET {{baseUrl}}/api/project/archived
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 27) RESTAURAR PROYECTO
+PATCH {{baseUrl}}/api/project/{{createProject.response.body.$.data._id}}/restore
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### 28) REFRESH TOKEN
+# @name refresh
+POST {{baseUrl}}/api/user/refresh
+Content-Type: {{json}}
+
+{
+  "refreshToken": "{{login.response.body.$.data.refreshToken}}"
+}
+
+
+### 29) CAMBIAR CONTRASEÑA
+PUT {{baseUrl}}/api/user/password
+Authorization: Bearer {{refresh.response.body.$.data.accessToken}}
+Content-Type: {{json}}
+
+{
+  "currentPassword": "{{userPassword}}",
+  "newPassword": "{{userNewPassword}}"
+}
+
+
+### 30) LOGIN CON NUEVA CONTRASEÑA
+# @name loginNewPassword
+POST {{baseUrl}}/api/user/login
+Content-Type: {{json}}
+
+{
+  "email": "{{register.response.body.$.data.user.email}}",
+  "password": "{{userNewPassword}}"
+}
+
+
+### 31) LOGOUT
+POST {{baseUrl}}/api/user/logout
+Authorization: Bearer {{loginNewPassword.response.body.$.data.accessToken}}
+
+
+### 32) SOFT DELETE USER
+DELETE {{baseUrl}}/api/user?soft=true
+Authorization: Bearer {{loginNewPassword.response.body.$.data.accessToken}}
+
+
+### =========================================================
+### CASOS NEGATIVOS
+### =========================================================
+
+### REGISTRO INVÁLIDO
+POST {{baseUrl}}/api/user/register
+Content-Type: {{json}}
+
+{
+  "email": "correo-invalido",
+  "password": "123"
+}
+
+
+### LOGIN CON PASSWORD INCORRECTA
+POST {{baseUrl}}/api/user/login
+Content-Type: {{json}}
+
+{
+  "email": "{{register.response.body.$.data.user.email}}",
+  "password": "PasswordIncorrecta123!"
+}
+
+
+### GET USER SIN TOKEN
+GET {{baseUrl}}/api/user
+
+
+### GET USER CON TOKEN INVÁLIDO
+GET {{baseUrl}}/api/user
+Authorization: Bearer token_invalido_123
+
+
+### CLIENTE CON ID INVÁLIDO
+GET {{baseUrl}}/api/client/id_invalido
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+
+
+### CREAR PROYECTO SIN CLIENT
+POST {{baseUrl}}/api/project
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+Content-Type: {{json}}
+
+{
+  "name": "Proyecto sin cliente",
+  "projectCode": "PR-ERROR-{{$timestamp}}",
+  "email": "error@demo.com",
+  "notes": "Debe fallar",
+  "active": true
+}
+
+
+### CREAR ALBARÁN CON FORMAT INVÁLIDO
+POST {{baseUrl}}/api/deliverynote
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
+Content-Type: {{json}}
+
+{
+  "client": "{{createClient.response.body.$.data._id}}",
+  "project": "{{createProject.response.body.$.data._id}}",
+  "format": "otro",
+  "description": "Inválido",
+  "workDate": "2026-04-23"
+}
+
+
+### INTENTAR BORRAR ALBARÁN FIRMADO
+DELETE {{baseUrl}}/api/deliverynote/{{createDeliveryNoteToSign.response.body.$.data._id}}
+Authorization: Bearer {{login.response.body.$.data.accessToken}}
