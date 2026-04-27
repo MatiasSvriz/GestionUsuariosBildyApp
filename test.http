@@ -3,7 +3,7 @@
 @userPassword = TestPassword123!
 @userNewPassword = TestPassword456!
 @logoPath = ./logo.png
-@signaturePath = ./firma.png
+@signaturePath = ./firma.jpg
 
 ### 0) HEALTH
 GET {{baseUrl}}/health
@@ -15,7 +15,7 @@ POST {{baseUrl}}/api/user/register
 Content-Type: {{json}}
 
 {
-  "email": "matias.demo+{{$timestamp}}@test.com",
+  "email": "matias.demo.test1@test.com",
   "password": "{{userPassword}}"
 }
 

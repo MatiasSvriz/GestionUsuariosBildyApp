@@ -5,7 +5,8 @@ export const config = {
     jwtSecret: process.env.JWT_SECRET || '',
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m',
     refreshTokenExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '7d',
-    publicUrl: process.env.PUBLIC_URL || 'http://localhost:3000'
+    publicUrl: process.env.PUBLIC_URL || 'http://localhost:3000',
+    slackWebhookUrl: process.env.SLACK_WEBHOOK_URL
   };
   
   export const validateConfig = () => {

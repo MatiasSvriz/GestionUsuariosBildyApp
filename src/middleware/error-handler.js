@@ -1,30 +1,30 @@
 import { AppError } from '../utils/AppError.js';
+import { sendSlackError } from '../services/notification.service.js';
 
 export const notFoundHandler = (req, res, next) => {
   next(AppError.notFound(`Ruta no encontrada: ${req.method} ${req.originalUrl}`));
 };
 
-export const errorHandler = (err, req, res, next) => {
-  if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({
-      ok: false,
-      error: {
-        code: 'FILE_TOO_LARGE',
-        message: 'El archivo supera el tamaño máximo de 5 MB'
-      }
+export const errorHandler = async (err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Error interno del servidor';
+
+  // 🔥 SOLO ERRORES 5XX → requisito de la práctica
+  if (statusCode >= 500) {
+    await sendSlackError({
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      route: req.originalUrl,
+      message,
+      stack: err.stack
     });
   }
-
-  const statusCode = err.statusCode || 500;
-  const code = err.code || 'INTERNAL_ERROR';
-  const message = err.message || 'Error interno del servidor';
 
   res.status(statusCode).json({
     ok: false,
     error: {
-      code,
-      message,
-      ...(err.details && { details: err.details })
+      code: err.code || 'INTERNAL_ERROR',
+      message
     }
   });
 };
