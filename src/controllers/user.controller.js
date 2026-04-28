@@ -6,6 +6,7 @@ import { AppError } from '../utils/AppError.js';
 import { config } from '../config/index.js';
 import Company from '../models/Company.js';
 import { notificationService } from '../services/notification.service.js';
+import { sendVerificationEmail } from '../services/email.service.js';
 
 const generateVerificationCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -61,12 +62,13 @@ export const registerUser = async (req, res, next) => {
       refreshTokenExpiresAt
     });
 
+    await sendVerificationEmail({
+      to: user.email,
+      code: verificationCode
+    });
+
     const savedUser = await User.findById(user._id)
       .select('+refreshToken +refreshTokenExpiresAt');
-
-    console.log('TOKEN GENERADO:', refreshToken);
-    console.log('TOKEN EN BD:', savedUser?.refreshToken);
-    console.log('EXPIRACION EN BD:', savedUser?.refreshTokenExpiresAt);
 
     const accessToken = generateAccessToken(user);
 

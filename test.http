@@ -15,7 +15,7 @@ POST {{baseUrl}}/api/user/register
 Content-Type: {{json}}
 
 {
-  "email": "matias.demo.test1@test.com",
+  "email": "svrizmatias@gmail.com",
   "password": "{{userPassword}}"
 }
 
