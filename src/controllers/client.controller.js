@@ -1,6 +1,7 @@
 // src/controllers/client.controller.js
 import Client from '../models/Client.js';
 import { AppError } from '../utils/AppError.js';
+import { emitToCompany } from '../services/socket.service.js';
 
 // Función auxiliar para paginación
 const getPaginationData = (query) => {
@@ -38,6 +39,8 @@ export const createClient = async (req, res, next) => {
       phone,
       address
     });
+
+    emitToCompany(req.user.company, 'client:new', client);
 
     res.status(201).json({
       ok: true,

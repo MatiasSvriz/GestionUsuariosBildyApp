@@ -4,6 +4,7 @@ import Client from '../models/Client.js';
 import cloudinaryService from '../services/cloudinary.service.js';
 import pdfService from '../services/pdf.service.js';
 import { AppError } from '../utils/AppError.js';
+import { emitToCompany } from '../services/socket.service.js';
 
 // Paginación simple
 const getPaginationData = (query) => {
@@ -82,6 +83,8 @@ export const createDeliveryNote = async (req, res, next) => {
       hours,
       workers
     });
+
+    emitToCompany(req.user.company, 'deliverynote:new', deliveryNote);
 
     res.status(201).json({
       ok: true,
@@ -278,6 +281,8 @@ export const signDeliveryNote = async (req, res, next) => {
     note.pdfUrl = pdfUpload.secure_url;
 
     await note.save();
+
+    emitToCompany(req.user.company, 'deliverynote:signed', note);
 
     res.status(200).json({
       ok: true,

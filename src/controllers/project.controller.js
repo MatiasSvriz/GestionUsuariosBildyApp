@@ -2,6 +2,7 @@
 import Project from '../models/Project.js';
 import Client from '../models/Client.js';
 import { AppError } from '../utils/AppError.js';
+import { emitToCompany } from '../services/socket.service.js';
 
 // Función auxiliar para paginación
 const getPaginationData = (query) => {
@@ -53,6 +54,8 @@ export const createProject = async (req, res, next) => {
       notes,
       active
     });
+
+    emitToCompany(req.user.company, 'project:new', project);
 
     res.status(201).json({
       ok: true,
