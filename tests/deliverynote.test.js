@@ -228,4 +228,91 @@ describe("DeliveryNote endpoints", () => {
     expect([400, 403, 409]).toContain(res.statusCode);
   });
 
+  test("GET /api/deliverynote/:id devuelve 404 si no existe", async () => {
+    const res = await request(app)
+      .get("/api/deliverynote/000000000000000000000000")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  test("DELETE /api/deliverynote/:id devuelve 404 si no existe", async () => {
+    const res = await request(app)
+      .delete("/api/deliverynote/000000000000000000000000")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  test("POST /api/deliverynote falla si faltan datos de material", async () => {
+    const res = await request(app)
+      .post("/api/deliverynote")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        project: project._id.toString(),
+        client: client._id.toString(),
+        format: "material",
+        description: "Material incompleto",
+        workDate: "2026-04-27"
+      });
+
+    expect(res.statusCode).toBeGreaterThanOrEqual(400);
+  });
+
+  test("POST /api/deliverynote falla si faltan datos de horas", async () => {
+    const res = await request(app)
+      .post("/api/deliverynote")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        project: project._id.toString(),
+        client: client._id.toString(),
+        format: "hours",
+        description: "Horas incompletas",
+        workDate: "2026-04-27"
+      });
+
+    expect(res.statusCode).toBeGreaterThanOrEqual(400);
+  });
+
+  test("PATCH /api/deliverynote/:id/sign falla si no hay firma", async () => {
+    const note = await DeliveryNote.create({
+      user: user._id,
+      company: company._id,
+      client: client._id,
+      project: project._id,
+      format: "hours",
+      description: "Sin firma",
+      workDate: new Date(),
+      hours: 4,
+      signed: false,
+    });
+
+    const res = await request(app)
+      .patch(`/api/deliverynote/${note._id}/sign`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.statusCode).toBeGreaterThanOrEqual(400);
+  });
+
+  test("PATCH /api/deliverynote/:id/sign falla si ya está firmado", async () => {
+    const note = await DeliveryNote.create({
+      user: user._id,
+      company: company._id,
+      client: client._id,
+      project: project._id,
+      format: "hours",
+      description: "Ya firmado",
+      workDate: new Date(),
+      hours: 4,
+      signed: true,
+      signedAt: new Date(),
+    });
+
+    const res = await request(app)
+      .patch(`/api/deliverynote/${note._id}/sign`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.statusCode).toBeGreaterThanOrEqual(400);
+  });
+
 });

@@ -3,7 +3,7 @@ import { AppError } from '../utils/AppError.js';
 
 const storage = multer.memoryStorage();
 
-const imageFilter = (req, file, cb) => {
+export const imageFilter = (req, file, cb) => {
   const allowed = ['image/png', 'image/jpeg', 'image/webp'];
 
   if (!allowed.includes(file.mimetype)) {

@@ -12,7 +12,9 @@ const transporter = nodemailer.createTransport({
 
 export const sendVerificationEmail = async ({ to, code }) => {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('SMTP no configurado. Código de verificación:', code);
+    if (process.env.NODE_ENV !== 'test') {
+      console.warn('SMTP no configurado. Código de verificación:', code);
+    }
     return;
   }
 

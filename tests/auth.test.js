@@ -304,4 +304,85 @@ describe('Auth/User endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
   });
+
+  it('validación email devuelve ok si el usuario ya está verificado', async () => {
+    await User.findByIdAndUpdate(user._id, { status: 'verified' });
+
+    const res = await request(app)
+      .put('/api/user/validation')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ code: user.verificationCode });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+  });
+
+  it('validación email bloquea cuando no quedan intentos', async () => {
+    await User.findByIdAndUpdate(user._id, {
+      verificationAttempts: 0
+    });
+
+    const res = await request(app)
+      .put('/api/user/validation')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ code: '000000' });
+
+    expect(res.status).toBe(429);
+    expect(res.body.ok).toBe(false);
+  });
+
+  it('company falla si no se envía CIF', async () => {
+    const res = await request(app)
+      .patch('/api/user/company')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Empresa sin CIF',
+        isFreelance: false,
+        address: {
+          street: 'Calle Test',
+          number: '1',
+          postal: '28001',
+          city: 'Madrid',
+          province: 'Madrid'
+        }
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.ok).toBe(false);
+  });
+
+  it('logo falla si el usuario no tiene compañía asociada', async () => {
+    await User.findByIdAndUpdate(user._id, { company: null });
+
+    const res = await request(app)
+      .patch('/api/user/logo')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.ok).toBe(false);
+  });
+
+  it('refresh falla si el refresh token está expirado', async () => {
+    await User.findByIdAndUpdate(user._id, {
+      refreshToken,
+      refreshTokenExpiresAt: new Date(Date.now() - 1000)
+    });
+
+    const res = await request(app)
+      .post('/api/user/refresh')
+      .send({ refreshToken });
+
+    expect(res.status).toBe(401);
+    expect(res.body.ok).toBe(false);
+  });
+
+  it('elimina usuario permanentemente', async () => {
+    const res = await request(app)
+      .delete('/api/user')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+  });
+
 });

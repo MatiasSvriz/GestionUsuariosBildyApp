@@ -2,11 +2,7 @@ import request from 'supertest';
 import app from '../src/app.js';
 
 describe('Project endpoints', () => {
-  const testUser = {
-    email: `project_${Date.now()}@example.com`,
-    password: '12345678'
-  };
-
+  let testUser;
   let token = '';
   let clientId = '';
 
@@ -34,9 +30,19 @@ describe('Project endpoints', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         name: 'Cliente Proyecto',
-        cif: `B${Date.now()}`,
-        email: 'clienteproyecto@test.com'
+        cif: `C${Date.now()}${Math.floor(Math.random()*1000)}`,
+        email: `cliente_${Date.now()}@test.com`,
+        phone: '600000000',
+        address: {
+          street: 'Calle Cliente',
+          number: '1',
+          postal: '28001',
+          city: 'Madrid',
+          province: 'Madrid'
+        }
       });
+
+    expect(res.status).toBe(201); // 🔥 clave
 
     return res.body.data._id;
   };
@@ -48,8 +54,8 @@ describe('Project endpoints', () => {
       .send({
         client: clientId,
         name: 'Proyecto Test',
-        projectCode: `PR-${Date.now()}`,
-        email: 'proyecto@test.com',
+        projectCode: `PR-${Date.now()}-${Math.random()}`,
+        email: `proyecto_${Date.now()}@test.com`,
         active: true,
         address: {
           street: 'Calle Obra',
@@ -65,13 +71,22 @@ describe('Project endpoints', () => {
   };
 
   beforeEach(async () => {
-    await request(app)
+    testUser = {
+      email: `project_${Date.now()}_${Math.random()}@example.com`,
+      password: '12345678'
+    };
+
+    const registerRes = await request(app)
       .post('/api/user/register')
       .send(testUser);
+
+    expect(registerRes.status).toBe(201); // 🔥 importante
 
     const loginRes = await request(app)
       .post('/api/user/login')
       .send(testUser);
+
+    expect(loginRes.status).toBe(200); // 🔥 evita undefined
 
     token = loginRes.body.data.accessToken;
 
@@ -220,4 +235,164 @@ describe('Project endpoints', () => {
 
     expect(getRes.status).toBe(404);
   });
+
+  it('no crea proyecto sin compañía', async () => {
+    // registrar usuario SIN company
+    const user = {
+      email: `no_company_${Date.now()}@test.com`,
+      password: '12345678'
+    };
+
+    await request(app).post('/api/user/register').send(user);
+
+    const login = await request(app)
+      .post('/api/user/login')
+      .send(user);
+
+    const badToken = login.body.data.accessToken;
+
+    const res = await request(app)
+      .post('/api/project')
+      .set('Authorization', `Bearer ${badToken}`)
+      .send({
+        client: clientId,
+        name: 'Proyecto Error',
+        projectCode: 'PR-ERROR'
+      });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('no crea proyecto con cliente inexistente', async () => {
+    const res = await request(app)
+      .post('/api/project')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        client: '507f1f77bcf86cd799439011',
+        name: 'Proyecto Error',
+        projectCode: 'PR-ERROR'
+      });
+
+    expect(res.status).toBe(404);
+  });
+
+  it('no crea proyecto con código duplicado', async () => {
+    const code = `PR-DUP-${Date.now()}`;
+
+    await createProject({ projectCode: code });
+
+    const res = await createProject({ projectCode: code });
+
+    expect(res.status).toBe(409);
+  });
+
+  it('no actualiza proyecto inexistente', async () => {
+    const res = await request(app)
+      .put('/api/project/507f1f77bcf86cd799439011')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Error' });
+
+    expect(res.status).toBe(404);
+  });
+
+  it('no actualiza con cliente inválido', async () => {
+    const created = await createProject();
+
+    const res = await request(app)
+      .put(`/api/project/${created.body.data._id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        client: '507f1f77bcf86cd799439011'
+      });
+
+    expect(res.status).toBe(404);
+  });
+
+  it('no actualiza con projectCode duplicado', async () => {
+      const p1 = await createProject();
+      const p2 = await createProject();
+
+      const res = await request(app)
+        .put(`/api/project/${p2.body.data._id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          projectCode: p1.body.data.projectCode
+        });
+
+      expect(res.status).toBe(409);
+  });
+
+  it('filtra proyectos por nombre', async () => {
+    await createProject({ name: 'FiltroTest' });
+
+    const res = await request(app)
+      .get('/api/project?name=Filtro')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it('filtra proyectos por active true', async () => {
+    await createProject({ active: true });
+
+    const res = await request(app)
+      .get('/api/project?active=true')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it('filtra proyectos por active false', async () => {
+    await createProject({ active: false });
+
+    const res = await request(app)
+      .get('/api/project?active=false')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it('ordena proyectos', async () => {
+    await createProject();
+
+    const res = await request(app)
+      .get('/api/project?sort=name')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+  });
+
+  it('no elimina proyecto inexistente', async () => {
+    const res = await request(app)
+      .delete('/api/project/507f1f77bcf86cd799439011')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(404);
+  });
+
+
+  it('no archiva proyecto ya archivado', async () => {
+    const created = await createProject();
+
+    const id = created.body.data._id;
+
+    await request(app)
+      .delete(`/api/project/${id}?soft=true`)
+      .set('Authorization', `Bearer ${token}`);
+
+    const res = await request(app)
+      .delete(`/api/project/${id}?soft=true`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
+  });
+
+  it('no restaura proyecto inexistente', async () => {
+    const res = await request(app)
+      .patch('/api/project/507f1f77bcf86cd799439011/restore')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(404);
+  });
+
 });

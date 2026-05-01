@@ -26,7 +26,9 @@ app.use(
 );
 
 // Rate limiting global
-app.use(limiter);
+if (process.env.NODE_ENV !== 'test') {
+  app.use(limiter);
+}
 
 // Parseo del body
 app.use(express.json({ limit: '10kb' }));
