@@ -19,6 +19,16 @@ Content-Type: {{json}}
   "password": "{{userPassword}}"
 }
 
+### 1.5) VALIDAR EMAIL
+# @name validateEmail
+PUT {{baseUrl}}/api/user/validation
+Content-Type: {{json}}
+Authorization: Bearer {{register.response.body.$.data.accessToken}}
+
+{
+  "code": "CODIGO_DE_VALIDACION"
+}
+
 
 ### 2) LOGIN
 # @name login
