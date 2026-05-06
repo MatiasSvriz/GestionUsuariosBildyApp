@@ -1,7 +1,6 @@
 // src/validators/project.validator.js
 import { z } from 'zod';
 
-// Dirección
 const addressValidator = z.object({
   street: z.string().optional(),
   number: z.string().optional(),
@@ -10,7 +9,6 @@ const addressValidator = z.object({
   province: z.string().optional()
 });
 
-// Crear proyecto
 export const createProjectValidator = z.object({
   body: z.object({
     client: z.string(),
@@ -23,7 +21,6 @@ export const createProjectValidator = z.object({
   })
 });
 
-// Actualizar proyecto
 export const updateProjectValidator = z.object({
   params: z.object({
     id: z.string()
@@ -39,14 +36,12 @@ export const updateProjectValidator = z.object({
   })
 });
 
-// Obtener proyecto por id
 export const getProjectByIdValidator = z.object({
   params: z.object({
     id: z.string()
   })
 });
 
-// Eliminar proyecto
 export const deleteProjectValidator = z.object({
   params: z.object({
     id: z.string()
@@ -56,14 +51,12 @@ export const deleteProjectValidator = z.object({
   }).optional()
 });
 
-// Restaurar proyecto
 export const restoreProjectValidator = z.object({
   params: z.object({
     id: z.string()
   })
 });
 
-// Listar proyectos
 export const listProjectsValidator = z.object({
   query: z.object({
     page: z.coerce.number().optional(),
@@ -75,7 +68,6 @@ export const listProjectsValidator = z.object({
   }).optional()
 });
 
-// Listar proyectos archivados
 export const listArchivedProjectsValidator = z.object({
   query: z.object({
     page: z.coerce.number().optional(),

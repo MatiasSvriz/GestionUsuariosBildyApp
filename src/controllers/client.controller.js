@@ -3,7 +3,6 @@ import Client from '../models/Client.js';
 import { AppError } from '../utils/AppError.js';
 import { emitToCompany } from '../services/socket.service.js';
 
-// Función auxiliar para paginación
 const getPaginationData = (query) => {
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
@@ -12,7 +11,6 @@ const getPaginationData = (query) => {
   return { page, limit, skip };
 };
 
-// POST /api/client
 export const createClient = async (req, res, next) => {
   try {
     const { name, cif, email, phone, address } = req.body;
@@ -52,7 +50,6 @@ export const createClient = async (req, res, next) => {
   }
 };
 
-// PUT /api/client/:id
 export const updateClient = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -91,7 +88,6 @@ export const updateClient = async (req, res, next) => {
   }
 };
 
-// GET /api/client
 export const getClients = async (req, res, next) => {
   try {
     const { page, limit, skip } = getPaginationData(req.query);
@@ -134,7 +130,6 @@ export const getClients = async (req, res, next) => {
   }
 };
 
-// GET /api/client/archived
 export const getArchivedClients = async (req, res, next) => {
   try {
     const { page, limit, skip } = getPaginationData(req.query);
@@ -177,7 +172,6 @@ export const getArchivedClients = async (req, res, next) => {
   }
 };
 
-// GET /api/client/:id
 export const getClientById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -201,7 +195,6 @@ export const getClientById = async (req, res, next) => {
   }
 };
 
-// DELETE /api/client/:id
 export const deleteClient = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -237,7 +230,6 @@ export const deleteClient = async (req, res, next) => {
   }
 };
 
-// PATCH /api/client/:id/restore
 export const restoreClient = async (req, res, next) => {
   try {
     const { id } = req.params;

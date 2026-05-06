@@ -3,9 +3,7 @@ import cloudinary from '../config/cloudinary.js';
 import { Readable } from 'stream';
 
 class CloudinaryService {
-  /**
-   * Subir archivo desde buffer (de Multer memoryStorage)
-   */
+
   async uploadBuffer(buffer, options = {}) {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
@@ -28,9 +26,6 @@ class CloudinaryService {
     });
   }
 
-  /**
-   * Subir imagen con transformaciones automáticas
-   */
   async uploadImage(buffer, options = {}) {
     return this.uploadBuffer(buffer, {
       folder: 'images',
@@ -43,9 +38,6 @@ class CloudinaryService {
     });
   }
 
-  /**
-   * Subir avatar con recorte circular
-   */
   async uploadAvatar(buffer, userId) {
     return this.uploadBuffer(buffer, {
       folder: 'avatars',
@@ -59,9 +51,6 @@ class CloudinaryService {
     });
   }
 
-  /**
-   * Subir imagen de producto con múltiples tamaños
-   */
   async uploadProductImage(buffer, productId, index = 0) {
     return this.uploadBuffer(buffer, {
       folder: 'products',
@@ -75,27 +64,18 @@ class CloudinaryService {
     });
   }
 
-  /**
-   * Eliminar archivo por public_id
-   */
   async delete(publicId, resourceType = 'image') {
     return cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType
     });
   }
 
-  /**
-   * Eliminar múltiples archivos
-   */
   async deleteMany(publicIds, resourceType = 'image') {
     return cloudinary.api.delete_resources(publicIds, {
       resource_type: resourceType
     });
   }
 
-  /**
-   * Obtener URL optimizada
-   */
   getOptimizedUrl(publicId, options = {}) {
     return cloudinary.url(publicId, {
       fetch_format: 'auto',
@@ -104,9 +84,6 @@ class CloudinaryService {
     });
   }
 
-  /**
-   * Generar URL con transformaciones
-   */
   getTransformedUrl(publicId, transformations) {
     return cloudinary.url(publicId, {
       transformation: transformations

@@ -9,7 +9,6 @@ export const errorHandler = async (err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Error interno del servidor';
 
-  // 🔥 SOLO ERRORES 5XX → requisito de la práctica
   if (statusCode >= 500) {
     await sendSlackError({
       timestamp: new Date().toISOString(),

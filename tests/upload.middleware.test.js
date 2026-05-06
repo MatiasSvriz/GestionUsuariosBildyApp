@@ -17,7 +17,7 @@ describe('upload middleware', () => {
 
     imageFilter({}, file, (err) => {
       expect(err).toBeDefined();
-      expect(err.statusCode).toBe(400); // 🔥 AppError
+      expect(err.statusCode).toBe(400);
       done();
     });
   });

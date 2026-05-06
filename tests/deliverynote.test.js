@@ -14,7 +14,6 @@ let client;
 let project;
 
 beforeEach(async () => {
-  // 🔹 Registrar usuario
   const registerRes = await request(app)
     .post("/api/user/register")
     .send({
@@ -26,7 +25,6 @@ beforeEach(async () => {
 
   user = await User.findOne({ email: registerRes.body.data.user.email });
 
-  // 🔹 Crear empresa
   company = await Company.create({
     owner: user._id,
     name: "Empresa Test",

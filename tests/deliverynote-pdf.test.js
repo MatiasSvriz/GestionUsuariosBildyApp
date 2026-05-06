@@ -1,7 +1,6 @@
 import request from 'supertest';
 import { jest } from '@jest/globals';
 
-// Mock del auth middleware
 jest.unstable_mockModule('../src/middleware/auth.middleware.js', () => ({
   default: (req, res, next) => {
     req.user = {
@@ -21,7 +20,6 @@ jest.unstable_mockModule('../src/middleware/auth.middleware.js', () => ({
   }
 }));
 
-// Mock del modelo DeliveryNote
 jest.unstable_mockModule('../src/models/DeliveryNote.js', () => ({
   default: {
     findOne: jest.fn()

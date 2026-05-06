@@ -46,7 +46,6 @@ const deliveryNoteSchema = new mongoose.Schema(
       required: true
     },
 
-    // Para albarán de material
     material: {
       type: String,
       trim: true
@@ -59,7 +58,6 @@ const deliveryNoteSchema = new mongoose.Schema(
       trim: true
     },
 
-    // Para albarán de horas
     hours: {
       type: Number
     },
@@ -68,7 +66,6 @@ const deliveryNoteSchema = new mongoose.Schema(
       default: []
     },
 
-    // Firma
     signed: {
       type: Boolean,
       default: false

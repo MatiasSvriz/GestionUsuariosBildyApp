@@ -8,13 +8,11 @@ export const uploadAvatar = async (req, res, next) => {
       return res.status(400).json({ error: 'No se envió imagen' });
     }
 
-    // Subir a Cloudinary
     const result = await cloudinaryService.uploadAvatar(
       req.file.buffer,
       req.user._id
     );
 
-    // Guardar URL en el usuario
     const user = await User.findByIdAndUpdate(
       req.user._id,
       {
@@ -41,7 +39,6 @@ export const uploadProductImages = async (req, res, next) => {
       return res.status(400).json({ error: 'No se enviaron imágenes' });
     }
 
-    // Subir todas las imágenes en paralelo
     const uploadPromises = req.files.map((file, index) =>
       cloudinaryService.uploadProductImage(
         file.buffer,
@@ -52,7 +49,6 @@ export const uploadProductImages = async (req, res, next) => {
 
     const results = await Promise.all(uploadPromises);
 
-    // Extraer URLs
     const images = results.map(r => ({
       url: r.secure_url,
       publicId: r.public_id,

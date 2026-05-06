@@ -4,7 +4,6 @@ import Client from '../models/Client.js';
 import { AppError } from '../utils/AppError.js';
 import { emitToCompany } from '../services/socket.service.js';
 
-// Función auxiliar para paginación
 const getPaginationData = (query) => {
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
@@ -13,7 +12,6 @@ const getPaginationData = (query) => {
   return { page, limit, skip };
 };
 
-// POST /api/project
 export const createProject = async (req, res, next) => {
   try {
     const { client, name, projectCode, address, email, notes, active } = req.body;
@@ -22,7 +20,6 @@ export const createProject = async (req, res, next) => {
       throw AppError.badRequest('El usuario no tiene una compañía asociada');
     }
 
-    // Comprobar que el cliente existe y pertenece a la compañía
     const existingClient = await Client.findOne({
       _id: client,
       company: req.user.company,
@@ -33,7 +30,6 @@ export const createProject = async (req, res, next) => {
       throw AppError.notFound('Cliente');
     }
 
-    // Comprobar que no exista el mismo código en la compañía
     const existingProject = await Project.findOne({
       company: req.user.company,
       projectCode
@@ -67,7 +63,6 @@ export const createProject = async (req, res, next) => {
   }
 };
 
-// PUT /api/project/:id
 export const updateProject = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -81,7 +76,6 @@ export const updateProject = async (req, res, next) => {
       throw AppError.notFound('Proyecto');
     }
 
-    // Si se cambia el cliente, comprobar que exista y sea de la misma compañía
     if (req.body.client) {
       const existingClient = await Client.findOne({
         _id: req.body.client,
@@ -94,7 +88,6 @@ export const updateProject = async (req, res, next) => {
       }
     }
 
-    // Si se cambia el projectCode, comprobar duplicados
     if (req.body.projectCode && req.body.projectCode !== project.projectCode) {
       const existingProject = await Project.findOne({
         company: req.user.company,
@@ -120,7 +113,6 @@ export const updateProject = async (req, res, next) => {
   }
 };
 
-// GET /api/project
 export const getProjects = async (req, res, next) => {
   try {
     const { page, limit, skip } = getPaginationData(req.query);
@@ -175,7 +167,6 @@ export const getProjects = async (req, res, next) => {
   }
 };
 
-// GET /api/project/archived
 export const getArchivedProjects = async (req, res, next) => {
   try {
     const { page, limit, skip } = getPaginationData(req.query);
@@ -230,7 +221,6 @@ export const getArchivedProjects = async (req, res, next) => {
   }
 };
 
-// GET /api/project/:id
 export const getProjectById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -254,7 +244,6 @@ export const getProjectById = async (req, res, next) => {
   }
 };
 
-// DELETE /api/project/:id
 export const deleteProject = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -297,7 +286,6 @@ export const deleteProject = async (req, res, next) => {
   }
 };
 
-// PATCH /api/project/:id/restore
 export const restoreProject = async (req, res, next) => {
   try {
     const { id } = req.params;

@@ -337,17 +337,12 @@ export const validateEmailCode = async (req, res, next) => {
   export const refreshAccessToken = async (req, res, next) => {
     try {
       const { refreshToken } = req.body;
-      // console.log('REFRESH RECIBIDO:', refreshToken);
   
       const user = await User.findOne({ refreshToken }).select('+refreshToken +refreshTokenExpiresAt');
-      // console.log('USER ENCONTRADO:', user);
   
       if (!user) {
         return next(AppError.unauthorized('Refresh token inválido o expirado'));
       }
-  
-      // console.log('EXPIRA EN:', user.refreshTokenExpiresAt);
-      // console.log('AHORA:', new Date());
   
       if (!user.refreshTokenExpiresAt || user.refreshTokenExpiresAt < new Date()) {
         return next(AppError.unauthorized('Refresh token inválido o expirado'));

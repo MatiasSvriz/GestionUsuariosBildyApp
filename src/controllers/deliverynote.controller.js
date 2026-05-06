@@ -15,9 +15,6 @@ const getPaginationData = (query) => {
   return { page, limit, skip };
 };
 
-// ============================
-// CREATE
-// ============================
 export const createDeliveryNote = async (req, res, next) => {
   try {
     const {
@@ -96,9 +93,6 @@ export const createDeliveryNote = async (req, res, next) => {
   }
 };
 
-// ============================
-// LIST
-// ============================
 export const getDeliveryNotes = async (req, res, next) => {
   try {
     const { page, limit, skip } = getPaginationData(req.query);
@@ -168,9 +162,6 @@ export const getDeliveryNotes = async (req, res, next) => {
   }
 };
 
-// ============================
-// GET BY ID
-// ============================
 export const getDeliveryNoteById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -197,9 +188,6 @@ export const getDeliveryNoteById = async (req, res, next) => {
   }
 };
 
-// ============================
-// DELETE
-// ============================
 export const deleteDeliveryNote = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -231,9 +219,6 @@ export const deleteDeliveryNote = async (req, res, next) => {
   }
 };
 
-// ============================
-// SIGN
-// ============================
 export const signDeliveryNote = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -259,7 +244,6 @@ export const signDeliveryNote = async (req, res, next) => {
       throw AppError.badRequest('Debes subir una imagen de firma');
     }
 
-    // 1) Subir firma a Cloudinary
     const signatureUpload = await cloudinaryService.uploadSignature(
       req.file.buffer,
       note._id
@@ -269,10 +253,8 @@ export const signDeliveryNote = async (req, res, next) => {
     note.signedAt = new Date();
     note.signatureUrl = signatureUpload.secure_url;
 
-    // 2) Generar PDF con la firma ya asociada al albarán
     const pdfBuffer = await pdfService.generateDeliveryNotePdf(note);
 
-    // 3) Subir PDF a Cloudinary
     const pdfUpload = await cloudinaryService.uploadPdf(
       pdfBuffer,
       note._id
@@ -294,9 +276,6 @@ export const signDeliveryNote = async (req, res, next) => {
   }
 };
 
-// ============================
-// PDF
-// ============================
 export const getDeliveryNotePdf = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -322,7 +301,7 @@ export const getDeliveryNotePdf = async (req, res, next) => {
       });
     }
 
-    // Si no existe todavía, lo generamos al vuelo
+    // Si no existe todavía, lo generamos
     const pdfBuffer = await pdfService.generateDeliveryNotePdf(note);
 
     res.setHeader('Content-Type', 'application/pdf');

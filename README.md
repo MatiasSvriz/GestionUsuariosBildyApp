@@ -17,7 +17,7 @@ El proyecto incluye autenticación, gestión de entidades principales, documenta
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/tu-usuario/bildyapp-api.git
+git clone https://github.com/MatiasSvriz/GestionUsuariosBildyApp
 cd bildyapp-api
 ```
 
